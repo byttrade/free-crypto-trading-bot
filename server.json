@@ -1,0 +1,51 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.byttrade/free-crypto-trading-bot",
+  "title": "Free Crypto Trading Bot",
+  "description": "Status, positions, trades and demo-account control of the Free Crypto Trading Bot panel.",
+  "version": "1.0.0",
+  "websiteUrl": "https://github.com/byttrade/free-crypto-trading-bot",
+  "repository": {
+    "url": "https://github.com/byttrade/free-crypto-trading-bot",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "free-crypto-trading-bot",
+      "version": "1.0.0",
+      "runtimeHint": "uvx",
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "--with",
+          "value": "mcp>=1.2",
+          "description": "The MCP SDK, an optional dependency of the package (extra: agent)."
+        }
+      ],
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ],
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "TREND4H_TOKEN",
+          "description": "Access token created in the panel: Settings, Agents. It decides what the tools may do.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "TREND4H_URL",
+          "description": "Address of the running panel.",
+          "default": "http://127.0.0.1:8790",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}

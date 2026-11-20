@@ -1,0 +1,25 @@
+# Free Crypto Trading Bot by BYTtrade.
+#
+# The image is published with every release. To build it yourself from a checkout:
+#   docker build -t ghcr.io/byttrade/free-crypto-trading-bot:latest .
+#
+# First run (creates the panel login; the panel does not start without it):
+#   docker compose run --rm bot panel-user
+#   docker compose up -d            # then open http://127.0.0.1:8790 on this machine
+#
+# The port is published to 127.0.0.1 of this machine only. --trust-local-publish lets you enter exchange keys in
+# the panel when you open it as http://127.0.0.1:8790 (or http://localhost:8790); opened by another name or address
+# the key form stays closed. To reach the panel from another computer use an SSH tunnel or an HTTPS proxy, do not
+# change the port line to 0.0.0.0.
+services:
+  bot:
+    image: ghcr.io/byttrade/free-crypto-trading-bot:latest
+    command: ["panel", "--host", "0.0.0.0", "--trust-local-publish"]
+    ports:
+      - "127.0.0.1:8790:8790"
+    volumes:
+      - bot-data:/data
+    restart: unless-stopped
+
+volumes:
+  bot-data:

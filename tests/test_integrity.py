@@ -126,3 +126,32 @@ def test_real_bytx_install_if_present():
     clean = integrity.clean_sources(opts)
     assert set(clean.values()) <= {"builtin", "none"}
     assert integrity.Guard("bybit", None, opts=opts, headers=headers, expected=clean).problem() is None
+
+
+def test_the_package_itself_is_checked_when_installed_from_a_wheel(tmp_path, monkeypatch):
+    pkg = tmp_path / "trend4h"
+    (pkg / "specs").mkdir(parents=True)
+    files = {"trend4h/live.py": b"code", "trend4h/specs/kc2_4h_adx1d.json": b"{}"}
+
+    def entry(name, data):
+        (tmp_path / name).write_bytes(data)
+        digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+        f = type("F", (str,), {})(name)
+        f.hash, f.locate = NS(mode="sha256", value=digest), lambda name=name: tmp_path / name
+        return f
+
+    dist = NS(files=[entry(n, d) for n, d in files.items()], locate_file=lambda n: tmp_path / n)
+    monkeypatch.setattr(integrity.metadata, "distribution", lambda name: dist)
+    monkeypatch.setattr(integrity, "__file__", str(pkg / "integrity.py"))
+    integrity.check_self()                                               # intact
+    (tmp_path / "trend4h/specs/kc2_4h_adx1d.json").write_bytes(b'{"exit": {"sl": {"atr": 99}}}')
+    with pytest.raises(integrity.IntegrityError, match="specs/kc2_4h_adx1d.json"):
+        integrity.check_self()
+    (tmp_path / "trend4h/specs/my_own.json").write_bytes(b"{}")           # an added file is not a change
+    (tmp_path / "trend4h/specs/kc2_4h_adx1d.json").write_bytes(b"{}")
+    integrity.check_self()
+    monkeypatch.setattr(integrity, "__file__", str(tmp_path / "checkout" / "trend4h" / "integrity.py"))
+    (tmp_path / "trend4h/live.py").write_bytes(b"edited")
+    integrity.check_self()                                               # running from a source checkout: skipped
+    dist.files = []                                                      # editable install: no hashes
+    integrity.check_self()

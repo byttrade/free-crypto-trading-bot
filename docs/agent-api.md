@@ -82,13 +82,15 @@ Errors are `{"error": "<text>", "code": "<code>"}`.
 ## MCP
 
 ```bash
-pip install -e '.[agent]'
-TREND4H_TOKEN=... python -m trend4h mcp --url http://127.0.0.1:8790
+pip install 'free-crypto-trading-bot[agent]'
+TREND4H_TOKEN=... free-crypto-trading-bot mcp --url http://127.0.0.1:8790
 ```
 
 A stdio MCP server with the tools `status`, `positions`, `trades`, `journal`, `get_config` and, for a token with
 the `control` right, `set_config`, `start_demo`, `stop`, `close_positions`. The token is read from the environment
-variable named by `--token-env` (default `TREND4H_TOKEN`), never from the command line. When the panel refuses a
+variable named by `--token-env` (default `TREND4H_TOKEN`), never from the command line. The address of the panel comes from `--url` or the `TREND4H_URL` variable
+(default `http://127.0.0.1:8790`). With the package installed, `"command": "free-crypto-trading-bot", "args": ["mcp"]` works
+as well. When the panel refuses a
 request, the tool returns `{"ok": false, "status": ..., "code": ..., "error": ...}` with the codes from the table above.
 Works with `mcp` 1.x and 2.x. Client configuration:
 
@@ -96,9 +98,9 @@ Works with `mcp` 1.x and 2.x. Client configuration:
 {
   "mcpServers": {
     "free-crypto-trading-bot": {
-      "command": "python",
-      "args": ["-m", "trend4h", "mcp", "--url", "http://127.0.0.1:8790"],
-      "env": {"TREND4H_TOKEN": "<token from the panel>"}
+      "command": "uvx",
+      "args": ["--from", "free-crypto-trading-bot[agent]", "free-crypto-trading-bot", "mcp"],
+      "env": {"TREND4H_URL": "http://127.0.0.1:8790", "TREND4H_TOKEN": "<token from the panel>"}
     }
   }
 }

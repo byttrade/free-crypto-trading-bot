@@ -1,0 +1,25 @@
+# Free Crypto Trading Bot by BYTtrade
+
+> A free bot for crypto perpetual futures: four backtested 4h trend-following strategies, a backtest anyone can re-run, an executor for 11 exchanges (Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX, BloFin), a local web panel, a token API and an MCP server for AI agents. Install: `pip install 'free-crypto-trading-bot[live]'`, run: `free-crypto-trading-bot panel`. High risk: the published results are a backtest, not a track record; start on a demo account. Source-available license: running it and adding your own files is allowed, modifying it is not.
+
+## Docs
+
+- [README](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/README.md): what it is, quick start, backtest results, how it works, limitations
+- [Guide](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/guide.md): installation (pip, uvx, Docker, source), data and backtest, settings, exchange keys, starting, the panel, running on a server, errors, FAQ
+- [Research](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/research.md): test conditions, costs, execution rules, full results, controls, reproducibility, honest limitations
+- [Agent API](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/agent-api.md): HTTP API under /api/v1, token rights, error codes, MCP tools
+
+## For agents
+
+- [AGENTS.md](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/AGENTS.md): how to install and run it for a user, what an agent may and must not do, typical tasks
+- [Skill](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/skills/free-crypto-trading-bot/SKILL.md): the same as a skill file for assistants that load skills
+- [server.json](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/server.json): MCP registry entry (stdio server, PyPI package)
+
+## Optional
+
+- [Russian README](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/README.ru.md)
+- [Russian guide](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/guide.ru.md)
+- [Changelog](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/CHANGELOG.md)
+- [License](https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/LICENSE)
+- [Strategy specifications](https://github.com/byttrade/free-crypto-trading-bot/tree/main/trend4h/specs)
+- [Recorded result tables](https://github.com/byttrade/free-crypto-trading-bot/tree/main/results)

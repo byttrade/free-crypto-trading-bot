@@ -7,6 +7,8 @@
 
 <p align="center">
 <img alt="цена: бесплатно" src="https://img.shields.io/badge/price-free-1B7446">
+<a href="https://pypi.org/project/free-crypto-trading-bot/"><img alt="PyPI" src="https://img.shields.io/pypi/v/free-crypto-trading-bot?color=0E5A63"></a>
+<a href="https://github.com/byttrade/free-crypto-trading-bot/actions/workflows/tests.yml"><img alt="тесты" src="https://github.com/byttrade/free-crypto-trading-bot/actions/workflows/tests.yml/badge.svg"></a>
 <img alt="python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-0E5A63">
 <img alt="бирж: 11" src="https://img.shields.io/badge/exchanges-11-0E5A63">
 <img alt="лицензия: source-available" src="https://img.shields.io/badge/license-source--available-56645F">
@@ -46,25 +48,47 @@
 Бот для тех, кто хочет попробовать системную торговлю на демо-счёте и сам проверить бэктест. Он не для тех, кто
 ждёт гарантированного дохода: сначала прочитайте [ограничения](#честные-ограничения).
 
-## Быстрый старт
+## Установка и запуск
+
+**pip** (Python 3.10+) или **uvx** — без установки:
+
+```bash
+pip install 'free-crypto-trading-bot[live]'
+free-crypto-trading-bot panel          # откройте http://127.0.0.1:8790
+
+uvx --from 'free-crypto-trading-bot[live]' free-crypto-trading-bot panel
+```
+
+**Docker:**
+
+```bash
+curl -O https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docker-compose.yml
+docker compose run --rm bot panel-user     # один раз: логин панели
+docker compose up -d                       # откройте http://127.0.0.1:8790
+```
+
+**Из исходников:**
 
 ```bash
 git clone https://github.com/byttrade/free-crypto-trading-bot && cd free-crypto-trading-bot
 pip install -e '.[live]'
-python -m trend4h panel          # откройте http://127.0.0.1:8790
+python -m trend4h panel
 ```
 
-В панели: добавьте ключи API **демо**-счёта в «Настройках», посмотрите «Стратегию», нажмите «Старт».
-[Руководство](docs/guide.ru.md) описывает каждый шаг, от создания ключей до работы на сервере.
+В панели: добавьте ключи API **демо**-счёта в «Настройках», посмотрите «Стратегию», нажмите «Старт». Панель
+открывается на английском; русский включается кнопкой RU. [Руководство](docs/guide.ru.md) описывает каждый шаг,
+от создания ключей до Docker и работы на сервере.
 
-`trend4h` — внутреннее имя проекта: так называются пакет Python, команда и продукт в тексте LICENSE.
+У команды три имени, они делают одно и то же: `free-crypto-trading-bot`, `trend4h` и `python -m trend4h`.
+`trend4h` — внутреннее имя проекта: так называются пакет Python и продукт в тексте LICENSE. Ключи, настройки,
+состояние и скачанные данные хранятся в папке, из которой вы запускаете команду.
 
 Нужен только бэктест? Ключи и счёт не требуются:
 
 ```bash
-pip install -e .
-python -m trend4h fetch          # публичные данные Binance, около 3 минут, 11 МБ
-python -m trend4h report         # все четыре стратегии на обоих периодах
+pip install free-crypto-trading-bot
+free-crypto-trading-bot fetch          # публичные данные Binance, около 3 минут, 11 МБ
+free-crypto-trading-bot report         # все четыре стратегии на обоих периодах
 ```
 
 ## Панель
@@ -110,7 +134,7 @@ python -m trend4h report         # все четыре стратегии на �
 
 ## Как это работает
 
-<p align="center"><img src="docs/img/how-it-works-ru.svg" width="900" alt="Данные рынка, сигналы, исполнитель, ваша биржа"></p>
+<p align="center"><img src="docs/img/how-it-works-ru.png" width="900" alt="Данные рынка, сигналы, исполнитель, ваша биржа"></p>
 
 - Раз на закрытии бара 4h исполнитель считает сигналы тем же кодом, что и бэктест, по публичным свечам Binance —
   на какой бы бирже вы ни торговали.
@@ -130,7 +154,7 @@ Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX и BloF
 
 ## Свой ИИ-агент
 
-Создайте токен в панели и передайте его агенту: через HTTP API или встроенный MCP-сервер. Токен может читать
+Создайте токен в панели и передайте его агенту: через HTTP API или встроенный MCP-сервер. Агентам и ассистентам стоит начать с [AGENTS.md](AGENTS.md); есть также [файл скилла](skills/free-crypto-trading-bot/SKILL.md), [llms.txt](llms.txt) и запись для реестра MCP ([server.json](server.json)). Токен может читать
 состояние и, если вы разрешите, управлять исполнителем на демо-счёте. До ключей бирж он не дотягивается и реальный
 счёт запустить не может. Агент работает через эти публичные интерфейсы и не меняет код — это то, что разрешает
 лицензия («добавлять можно, изменять нельзя»). См. [docs/agent-api.md](docs/agent-api.md) и
@@ -155,6 +179,8 @@ Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX и BloF
 | [docs/guide.ru.md](docs/guide.ru.md) | установка, бэктест, настройки, ключи, запуск, панель, сервер, агенты, ошибки, вопросы и ответы |
 | [docs/research.ru.md](docs/research.ru.md) | условия проверки, полные результаты, контроль, воспроизводимость, ограничения |
 | [docs/agent-api.md](docs/agent-api.md) | HTTP API и MCP-сервер для своего агента (на английском) |
+| [AGENTS.md](AGENTS.md) | инструкции для ИИ-агентов: что им можно делать за вас и чего нельзя (на английском) |
+| [CHANGELOG.md](CHANGELOG.md) | что менялось в каждом выпуске (на английском) |
 | [results/](results/) | метрики, пересчитанные этим кодом, и записанные таблицы исследования |
 
 ## Лицензия

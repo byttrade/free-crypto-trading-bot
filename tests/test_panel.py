@@ -445,3 +445,23 @@ def test_every_site_link_in_the_page_carries_the_four_utm_marks():
         places.add(link.rsplit("=", 1)[1])
     assert places == {"panel_sidebar", "panel_trades", "panel_overview", "panel_strategy", "panel_settings"}
     assert all('target="_blank" rel="noopener noreferrer"' in tag for tag in re.findall(r'<a href="https://byttrade[^>]*>', panel.PAGE))
+
+
+def test_the_panel_opens_in_english_whatever_the_browser_prefers(tmp_path, monkeypatch):
+    monkeypatch.setattr(live, "load_env", lambda path=".env": None)
+    page = panel.Panel(panel.Runner(tmp_path, serve=fake_serve), None).handle(
+        "GET", "/", None, "127.0.0.1", {}, None, {**LOCAL, "accept_language": "ru-RU,ru;q=0.9"})[1]
+    assert '<html lang="en">' in page and "navigator.language" not in page and "Accept-Language" not in page
+    assert 'let lang=store.get("lang")==="ru"?"ru":"en"' in page          # Russian only after the button stored it
+    assert "Accept-Language" not in open(panel.__file__).read()           # the server does not look at it either
+
+
+def test_a_published_container_port_is_trusted_only_with_the_flag_and_a_local_address(keys):
+    body = {"exchange": "bybit", "account": "demo", "fields": SECRETS}
+    gateway = "172.17.0.1"                                               # what the container sees for every browser
+    assert post(keys, "/api/keys", body, ip=gateway, conn={**LOCAL, "host": "127.0.0.1:8790"})[0] == 403
+    keys.p.local_publish = True
+    assert post(keys, "/api/keys", body, ip=gateway, conn={**LOCAL, "host": "192.0.2.10:8790"})[0] == 403   # by address
+    assert post(keys, "/api/keys", body, ip=gateway, conn={**LOCAL, "host": "bot.example:8790"})[0] == 403
+    assert post(keys, "/api/keys", body, ip=gateway, conn={**LOCAL, "forwarded": True, "proto": "https", "host": "127.0.0.1"})[0] == 403
+    assert post(keys, "/api/keys", body, ip=gateway, conn={**LOCAL, "host": "localhost:8790"})[0] == 200

@@ -35,8 +35,21 @@ def test_config_applies_to_backtest_spec(tmp_path, capsys):
     if (ROOT / "data" / "BTC_4h.csv").exists():
         cfg = tmp_path / "c.json"
         cfg.write_text(json.dumps({"coins": ["BTC"], "sizing": "notional", "notional_usdt": 1000}))
-        main(["run", str(ROOT / "specs" / "kc2_4h_adx1d.json"), "--period", "oos", "--config", str(cfg), "--data-dir", str(ROOT / "data")])
+        main(["run", "kc2_4h_adx1d", "--period", "oos", "--config", str(cfg), "--data-dir", str(ROOT / "data")])
         assert "WARNING" in capsys.readouterr().out
-        m, trades = backtest.run(config.apply_to_spec(json.loads((ROOT / "specs" / "kc2_4h_adx1d.json").read_text()), config.load(cfg)),
+        m, trades = backtest.run(config.apply_to_spec(json.loads((config.SPECS_DIR / "kc2_4h_adx1d.json").read_text()), config.load(cfg)),
                                  *backtest.PERIODS["oos"], ROOT / "data")
         assert all(abs(t["pnl"]) < 1000 for t in trades) and m["pnl_usdt"] == pytest.approx(sum(t["pnl"] for t in trades), abs=0.01)
+
+
+def test_run_takes_a_built_in_strategy_by_name_or_your_own_file(tmp_path, monkeypatch):
+    from trend4h.__main__ import spec_path
+    monkeypatch.chdir(tmp_path)                                            # an empty folder, as after pip install
+    assert spec_path("kc2_4h_adx1d") == config.SPECS_DIR / "kc2_4h_adx1d.json"
+    assert spec_path("specs/kc2_4h_adx1d.json") == config.SPECS_DIR / "kc2_4h_adx1d.json"   # the path of older docs
+    own = tmp_path / "mine.json"
+    own.write_text("{}")
+    assert spec_path(str(own)) == own
+    with pytest.raises(FileNotFoundError, match="built-in strategy"):
+        spec_path("nope")
+    assert sorted(p.stem for p in config.SPECS_DIR.glob("*.json")) == sorted(config.STRATEGIES)

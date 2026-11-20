@@ -35,8 +35,10 @@ Subject to your compliance with this license, BYTtrade grants you a
 worldwide, non-exclusive, non-transferable, non-sublicensable, royalty-free
 license to:
 
-(a) download and install the Software from its official source,
-    https://github.com/byttrade/free-crypto-trading-bot;
+(a) download and install the Software from its official sources,
+    https://github.com/byttrade/free-crypto-trading-bot,
+    https://pypi.org/project/free-crypto-trading-bot and the container
+    image ghcr.io/byttrade/free-crypto-trading-bot;
 
 (b) use the Software for any lawful purpose, including commercial purposes
     and trading on your own account, by running it as an application on

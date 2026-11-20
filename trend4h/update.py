@@ -21,6 +21,7 @@ import urllib.request
 from importlib import metadata
 from pathlib import Path
 
+from . import __version__
 from .data import urlopen
 from .live import STEP, Lock
 
@@ -51,6 +52,12 @@ def pypi_versions() -> list[str]:
         return list(json.load(r)["releases"])
 
 
+def pypi_own_version() -> str | None:
+    """Newest released version of this package on PyPI."""
+    with urlopen("https://pypi.org/pypi/free-crypto-trading-bot/json", timeout=20) as r:
+        return json.load(r)["info"]["version"]
+
+
 def pip_install(version: str) -> None:
     """Install bytx==version into this environment; RuntimeError with the installer's last lines on failure."""
     if importlib.util.find_spec("pip"):
@@ -78,7 +85,7 @@ def verify_install(version: str) -> dict:
 class Updater:
     def __init__(self, mode="on", margin_min=60, state_dir="state", log=print, versions=pypi_versions,
                  install=pip_install, verify=verify_install, current=lambda: metadata.version("bytx"),
-                 clock=time.time):
+                 clock=time.time, own=None, own_current=None):
         self.mode, self.margin = mode, max(60, int(margin_min)) * 60
         self.dir = Path(state_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
@@ -86,13 +93,17 @@ class Updater:
         self.log, self.versions, self.install, self.verify, self.current, self.clock = log, versions, install, verify, current, clock
         self.st = json.loads(self.file.read_text()) if self.file.exists() else {"checked_at": 0, "available": None, "failed": {}}
         self.force = False  # "update now" from the panel: skips the daily timer, never the safe window
+        # this package is never auto-updated: a newer release is only reported. Asked from the real index only.
+        self.own = own or (pypi_own_version if versions is pypi_versions else (lambda: None))
+        self.own_current = own_current or __version__
 
     def _save(self):
         self.file.write_text(json.dumps(self.st))
 
     def status(self) -> dict:
         return {"mode": self.mode, "current": self.current(), "available": self.st.get("available"),
-                "incompatible": self.st.get("incompatible"), "checked_at": self.st.get("checked_at")}
+                "incompatible": self.st.get("incompatible"), "checked_at": self.st.get("checked_at"),
+                "own": self.own_current, "own_available": self.st.get("own_available")}
 
     def check(self) -> str | None:
         """Ask the index once a day; returns the version to install, if any."""
@@ -112,12 +123,26 @@ class Updater:
                          note="a newer incompatible bytx is available: update this bot (git pull)")
             if newer and newer != self.st.get("available"):
                 self.log("update_available", current=self.current(), version=newer)
-            self.st.update(checked_at=now, available=newer, incompatible=beyond)
+            self.st.update(checked_at=now, available=newer, incompatible=beyond, own_available=self._own_newer())
             self._save()
         v = self.st.get("available")
         if not v or self.mode != "on" or now - self.st["failed"].get(v, 0) < CHECK_EVERY:
             return None
         return v
+
+    def _own_newer(self) -> str | None:
+        """A newer release of this package, logged once per version; it is installed by the user, never from here."""
+        try:
+            latest = self.own()
+        except Exception:
+            return self.st.get("own_available")
+        if not latest or not parse(latest) or not parse(self.own_current) or parse(latest) <= parse(self.own_current):
+            return None
+        if latest != self.st.get("own_available"):
+            self.log("update_own_available", current=self.own_current, version=latest,
+                     note="a newer release of this bot is out: pip install -U free-crypto-trading-bot "
+                          "(Docker: pull the new image; source checkout: git pull)")
+        return latest
 
     def safe_window(self, executor) -> str | None:
         """None if it is safe to update now, otherwise why not."""

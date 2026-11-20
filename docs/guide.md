@@ -17,7 +17,7 @@ The pictures show the panel with demo data: balances, positions and trades are i
 5. [Exchange keys](#exchange-keys)
 6. [Starting](#starting)
 7. [The panel section by section](#the-panel-section-by-section)
-8. [Running on a server](#running-on-a-server)
+8. [Running on a server](#running-on-a-server), [Docker](#docker)
 9. [Agents](#agents)
 10. [What the executor does step by step](#what-the-executor-does-step-by-step)
 11. [bytx auto-update](#bytx-auto-update)
@@ -28,11 +28,29 @@ The pictures show the panel with demo data: balances, positions and trades are i
 
 ## Installation
 
-You need Python 3.10 or newer and git.
+There are three ways. All of them give the same program.
+
+**1. From PyPI** (Python 3.10 or newer):
+
+```bash
+python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install 'free-crypto-trading-bot[live]'
+free-crypto-trading-bot --help
+```
+
+Or with [uv](https://docs.astral.sh/uv/), without installing anything permanently:
+
+```bash
+uvx --from 'free-crypto-trading-bot[live]' free-crypto-trading-bot panel
+```
+
+**2. Docker:** see [Docker](#docker).
+
+**3. From source:**
 
 ```bash
 git clone https://github.com/byttrade/free-crypto-trading-bot && cd free-crypto-trading-bot
-python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate
 pip install -e '.[live]'
 ```
 
@@ -40,21 +58,42 @@ What the extras add:
 
 | Install | What you get |
 |---|---|
-| `pip install -e .` | backtest only: numpy and pandas |
-| `pip install -e '.[live]'` | the executor and the panel: adds the [bytx](https://github.com/byttrade/bytx) SDK |
-| `pip install -e '.[live,agent]'` | also the MCP server for your own agent: adds the `mcp` package |
-| `pip install -e '.[test]'` | pytest, to run the tests |
+| `free-crypto-trading-bot` | backtest only: numpy and pandas |
+| `free-crypto-trading-bot[live]` | the executor and the panel: adds the [bytx](https://github.com/byttrade/bytx) SDK |
+| `free-crypto-trading-bot[agent]` | the MCP server for your own agent: adds the `mcp` package |
+| `free-crypto-trading-bot[all]` | `live` and `agent` together |
+| `free-crypto-trading-bot[test]` | pytest, to run the tests of a source checkout |
 
-The project installs under the name `free-crypto-trading-bot`; the package you run is `trend4h`. Check it:
+The command has three names that do the same: `free-crypto-trading-bot`, `trend4h` and `python -m trend4h`. This
+guide writes `python -m trend4h`; use whichever you like. The commands are `fetch`, `run`, `report`, `start`,
+`live`, `close`, `panel`, `panel-user` and `mcp`; `--version` prints the version.
+
+**Where your files live.** Every command works in the current folder: it reads `.env` from it and keeps its files
+in `state/` and `data/` (change these with `--state-dir` and `--data-dir`). Nothing of yours is stored inside the
+installed package, so reinstalling or updating it loses nothing. Make a folder for the bot and always run the
+commands from it:
 
 ```bash
-python -m trend4h --help
+mkdir ~/trading-bot && cd ~/trading-bot
+free-crypto-trading-bot panel
 ```
 
-It lists the commands: `fetch`, `run`, `report`, `start`, `live`, `close`, `panel`, `panel-user`, `mcp`.
+The four strategy specifications ship inside the package. `config.example.json` and `.env.example` are in the
+[repository](https://github.com/byttrade/free-crypto-trading-bot); the guide below shows what goes into them.
 
-Every command works in the current folder: it reads `.env` from it and keeps its files in `state/` and `data/`
-(change these with `--state-dir` and `--data-dir`). Run the commands from the project folder.
+### Updating
+
+| Installed with | Update with |
+|---|---|
+| pip | `pip install -U free-crypto-trading-bot` |
+| uvx | `uvx --from 'free-crypto-trading-bot[live]@latest' free-crypto-trading-bot panel` |
+| Docker | `docker compose pull && docker compose up -d` |
+| source | `git pull` |
+
+Stop the executor first; open positions keep their stops on the exchange. The program never updates itself: when
+a newer release is out, the journal and the panel (Settings, Updates) say so. Only the bytx SDK can update on its
+own, see [bytx auto-update](#bytx-auto-update). Changes of each release are in the
+[changelog](https://github.com/byttrade/free-crypto-trading-bot/blob/main/CHANGELOG.md).
 
 ## Data and backtest
 
@@ -73,14 +112,15 @@ writes `metrics_by_period.csv`, `by_half_year.csv` and `by_side.csv`.
 same numbers. More commands:
 
 ```bash
-python -m trend4h run specs/kc2_4h_adx1d.json --period oos --trades trades.csv    # one strategy, the trade list as CSV
-python -m trend4h run specs/st4h_ema50_1d.json --from 2024-01-01 --to 2024-12-31  # any date range
-python -m trend4h run specs/bbw1d_lr4h.json --config config.example.json          # your coins, costs and sizing
+python -m trend4h run kc2_4h_adx1d --period oos --trades trades.csv    # one strategy, the trade list as CSV
+python -m trend4h run st4h_ema50_1d --from 2024-01-01 --to 2024-12-31  # any date range
+python -m trend4h run bbw1d_lr4h --config my.json                      # your coins, costs and sizing
 python -m trend4h fetch --coins BTC,ETH --end 2026-06-30                          # part of the data
-pip install -e '.[test]' && pytest                                                # tests, no network needed
+python -m trend4h run ./my_strategy.json                               # a spec file of your own
 ```
 
-`run` prints the name of the strategy and one line per period with the same metrics, then the result by half-year
+`run` takes a built-in strategy by name (`st4h_ema50_1d`, `kc2_4h_adx1d`, `zmid1d_cloud4h`, `bbw1d_lr4h`) or the path
+to a spec file of your own. It prints the name of the strategy and one line per period with the same metrics, then the result by half-year
 and by side. With `--config` it applies `coins`, `fee`, `slippage`, `risk_pct` and, for `sizing: notional`,
 `notional_usdt` from your file, and warns when they differ from the research.
 
@@ -103,11 +143,12 @@ How to read the exits: with "2 / 10 / 5" the stop is 2 ATR from the entry, the t
 follows the best price at a distance of 5 ATR. A trade that loses costs about 1 R (the risk you set); a trade that
 reaches the take-profit earns several R. Most trades lose: the win rate in the backtest is 31–42 %.
 
-The exact rules are the JSON files in [specs/](../specs/); the indicators are in `trend4h/indicators.py`.
+The exact rules are the JSON files in [trend4h/specs/](../trend4h/specs/); the indicators are in
+`trend4h/indicators.py`.
 
 ## Settings
 
-Settings live in a JSON file (see `config.example.json`) or are edited in the panel, section Strategy. Every
+Settings live in a JSON file (see [config.example.json](../config.example.json)) or are edited in the panel, section Strategy. Every
 setting, its default and its limits:
 
 | Setting | Default | Limits | What it does | What you risk by changing it |
@@ -168,7 +209,8 @@ The key form is available only when the connection is safe: the panel is opened 
 (`127.0.0.1`, an SSH tunnel included) or over HTTPS. Over plain HTTP from another machine the form is replaced by
 an explanation; use a tunnel, HTTPS, or the file.
 
-**Through the file.** Copy `.env.example` to `.env` and fill it in. The names are
+**Through the file.** Create a file named `.env` in the folder you run the bot from (in a source checkout: copy
+`.env.example`). The names are
 `<EXCHANGE>_<DEMO|REAL>_API_KEY`, `_SECRET`, `_PASSWORD` (the passphrase, where the exchange has one); for
 Hyperliquid `_WALLET_ADDRESS` and `_PRIVATE_KEY`:
 
@@ -205,7 +247,7 @@ reads the balance, shows a summary and waits for you to type `start`.
 
 ```bash
 python -m trend4h live --exchange bybit --account demo --strategies all --risk 0.056
-python -m trend4h live --config config.example.json
+python -m trend4h live --config my.json
 python -m trend4h live --dry-run --coins BTC,ETH       # signals and orders are printed, nothing is sent; works without keys
 python -m trend4h close --exchange bybit --account demo   # close the positions the executor opened
 ```
@@ -235,7 +277,8 @@ python -m trend4h panel --port 8791        # another port
 python -m trend4h panel-user               # set a login and password
 ```
 
-English and Russian, light and dark theme; the choice is remembered in the browser.
+English and Russian, light and dark theme. The panel always opens in English; Russian is switched on with the RU
+button, and the choice is remembered in the browser.
 
 ### Overview
 
@@ -270,7 +313,8 @@ was started with.
 ![Exchange keys](img/settings-keys-en.png)
 
 - **Exchange API keys:** see [Exchange keys](#exchange-keys).
-- **bytx SDK updates:** the installed and the available version, what to do with a new version, the time of the
+- **Updates:** the version of this program and whether a newer release is out; the installed and the available
+  version of the bytx SDK, what to do with a new version, the time of the
   last check, and "Update now" (works while the executor runs).
 - **Agents:** access tokens for your own agents, see [Agents](#agents).
 - **Access to the panel:** the login and password, sign out.
@@ -343,6 +387,60 @@ saves that file; for a real account add `--confirm-real`). Use one of the two fo
 next to a `live` service does not see that the executor is running, and a second executor on the same account
 refuses to start.
 
+## Docker
+
+The image `ghcr.io/byttrade/free-crypto-trading-bot` holds the panel and the executor. Everything that must
+survive (the `.env` with keys, `state/`, `data/`) lives in the volume mounted at `/data`. The process runs as an
+unprivileged user.
+
+```bash
+curl -O https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docker-compose.yml
+docker compose run --rm bot panel-user      # once: asks for the login and password of the panel
+docker compose up -d
+```
+
+Then open http://127.0.0.1:8790 on the same machine and sign in.
+
+**Why a login is required.** Inside a container the panel has to listen on `0.0.0.0`, and the rule "any address
+other than 127.0.0.1 needs a login and password" applies there too. Without a login the container prints the
+reason and stops: run the `panel-user` line first.
+
+**How exchange keys are entered.** The compose file publishes the port to `127.0.0.1` of your machine only and
+starts the panel with `--trust-local-publish`. With a published port the panel cannot see who is on the other
+side: every connection arrives from the container network. The flag therefore makes one honest assumption, that
+the port is published only to the local machine, and then decides by the address in your browser:
+
+- opened as `http://127.0.0.1:8790` or `http://localhost:8790`: the forms for keys, tokens and the password work.
+  The traffic does not leave your machine;
+- opened by the machine's name or IP address: the forms stay closed, as for any plain-HTTP connection from
+  another computer.
+
+So do not change the port line to `0.0.0.0:8790:8790` to reach the panel from elsewhere. Use an SSH tunnel to the
+Docker host (`ssh -L 8790:127.0.0.1:8790 user@server`) and open `http://127.0.0.1:8790` at home, or put an HTTPS
+proxy in front and replace `--trust-local-publish` with `--behind-https-proxy`. Without either flag the forms are
+closed in a container, and keys go into the file instead:
+
+```bash
+docker compose run --rm -T --entrypoint sh bot -c 'cat > /data/.env && chmod 600 /data/.env' < my.env
+```
+
+**Everyday commands:**
+
+```bash
+docker compose logs -f bot                           # what the panel and the executor print
+docker compose run --rm bot fetch                    # any command of the program; files go to the volume
+docker compose run --rm bot run kc2_4h_adx1d
+docker compose pull && docker compose up -d          # update to the newest release
+docker compose down                                  # stop; the volume with keys and state stays
+```
+
+After the container restarts the panel is up again but the executor is not started by itself: sign in and press
+Start. Positions keep their stops on the exchange meanwhile. The container reports its health (`docker ps` shows
+`healthy` while the panel answers).
+
+To build the image yourself: `git clone https://github.com/byttrade/free-crypto-trading-bot && cd free-crypto-trading-bot && docker build -t
+ghcr.io/byttrade/free-crypto-trading-bot:latest .`
+
 ## Agents
 
 Your own AI agent or script can work with the executor through an access token.
@@ -363,16 +461,16 @@ Your own AI agent or script can work with the executor through an access token.
    or as an MCP server:
 
    ```bash
-   pip install -e '.[agent]'
+   pip install 'free-crypto-trading-bot[agent]'      # or let uvx fetch it, as in the configuration below
    ```
 
    ```json
    {
      "mcpServers": {
        "free-crypto-trading-bot": {
-         "command": "python",
-         "args": ["-m", "trend4h", "mcp", "--url", "http://127.0.0.1:8790"],
-         "env": {"TREND4H_TOKEN": "<token from the panel>"}
+         "command": "uvx",
+         "args": ["--from", "free-crypto-trading-bot[agent]", "free-crypto-trading-bot", "mcp"],
+         "env": {"TREND4H_URL": "http://127.0.0.1:8790", "TREND4H_TOKEN": "<token from the panel>"}
        }
      }
    }
@@ -442,8 +540,9 @@ range (`>=0.2.2,<0.3`).
 A safe window means: no exchange request is in flight, more than `update_margin_min` minutes (60 by default) are
 left to the next 4h bar close, and the last bar was processed at least five minutes ago. The new version is
 verified in a separate process. On any failure the previous version is put back, the reason is written to the
-journal, and that version is not tried again for a day. Exchange stops are never touched. This project itself is
-not auto-updated: use `git pull`.
+journal, and that version is not tried again for a day. Exchange stops are never touched. This program itself is
+never auto-updated: the same daily check only reports a newer release (journal event `update_own_available`,
+Settings in the panel), and you [update it yourself](#updating).
 
 Be aware that an auto-update installs code from PyPI into a process that holds your exchange keys. If you prefer
 to update by hand, choose `notify` or `off` and run `pip install -U 'bytx>=0.2.2,<0.3'`.
@@ -455,7 +554,9 @@ the BYTtrade broker identifier that bytx adds to orders; it is how the project i
 
 Before the start, before every batch of orders and every ten minutes the executor checks that:
 
-- the installed bytx files match the checksums of the released package;
+- the installed bytx files match the checksums of the released package; when this program is installed from PyPI
+  or runs in the container, its own code and built-in strategy files are checked the same way (a source checkout
+  is not checked);
 - the broker identifier of your exchange comes from bytx itself, not from an environment variable or a setting;
 - where the exchange returns the tag on an order, the tag of a placed order is the built-in one.
 
@@ -475,9 +576,11 @@ If a check fails, no new orders are sent and the reason is shown in the panel an
 
 ```bash
 pip install --force-reinstall 'bytx>=0.2.2,<0.3'
+pip install --force-reinstall free-crypto-trading-bot      # if the message names this package
 ```
 
-and remove broker settings from the environment. Changing bytx or its attribution is not permitted by the license
+and remove broker settings from the environment. Your own strategy specs and configs belong next to the program,
+not inside the installed package. Changing bytx or its attribution is not permitted by the license
 (sections 2(e), 3(a), 3(g)).
 
 ## Journal and state files
@@ -527,6 +630,7 @@ The main journal events:
 | `Address already in use` when the panel starts | the port is taken | `python -m trend4h panel --port 8791` |
 | `refusing to listen on 0.0.0.0 without a login and password` | a public address needs a password | `python -m trend4h panel-user` |
 | `another executor already runs on ...lock` | this account is already traded by another process | stop the other one; one executor per account |
+| `the installed free-crypto-trading-bot differs from the released package` | a file of the installed program was changed | `pip install --force-reinstall free-crypto-trading-bot` (Docker: pull the image again) |
 | `data/BTC_4h.csv not found` | the backtest has no data yet | `python -m trend4h fetch` |
 | the key form says keys cannot be entered over this connection | plain HTTP from another machine | SSH tunnel, HTTPS, or `.env` on the server |
 | the panel shows the sign-in form after a restart | the session ended with the restart | sign in again, or reload the page if no password is set |
@@ -544,8 +648,8 @@ why the broker attribution cannot be switched off and why the integrity checks e
 specs, configs and your own code next to it, but not modify the project or bytx, and not distribute modified
 versions. The text of the [LICENSE](../LICENSE) is what counts.
 
-**Can I add my own strategy?** A new JSON file next to the four in `specs/` can be backtested with
-`python -m trend4h run your.json`, using the indicators that already exist. The executor trades the four
+**Can I add my own strategy?** A JSON file of your own, written like the four built-in ones and kept in your own
+folder, can be backtested with `python -m trend4h run your.json`, using the indicators that already exist. The executor trades the four
 strategies of the project.
 
 **What are the risks?** You can lose the whole deposit. The backtest is not a track record; outside the 20 coins

@@ -26,6 +26,7 @@ from importlib import metadata
 from pathlib import Path
 
 RECHECK_SEC = 600
+SELF = "free-crypto-trading-bot"   # the distribution that ships this package
 ORDER_TAG_FIELD = {"okx": "tag", "blofin": "brokerId"}  # field of the raw order that carries the broker tag
 _KEY_PREFIX = {"hyperliquid": "HL"}
 
@@ -34,12 +35,12 @@ class IntegrityError(PermissionError):
     pass
 
 
-def changed_files(dist) -> list[str]:
+def changed_files(dist, suffixes=(".py",)) -> list[str]:
     """RECORD entries (.py with sha256) whose file on disk is missing or different."""
     out = []
     for f in dist.files or []:
         h = getattr(f, "hash", None)
-        if h is None or h.mode != "sha256" or not str(f).endswith(".py"):
+        if h is None or h.mode != "sha256" or not str(f).endswith(suffixes):
             continue
         try:
             digest = hashlib.sha256(Path(f.locate()).read_bytes()).digest()
@@ -51,12 +52,32 @@ def changed_files(dist) -> list[str]:
     return out
 
 
+def check_self() -> None:
+    """The same file check for this package (code and built-in strategy specs) when it runs from a released wheel.
+
+    Skipped for a source checkout and an editable install: there is no RECORD with file hashes to compare with.
+    """
+    try:
+        dist = metadata.distribution(SELF)
+    except metadata.PackageNotFoundError:
+        return
+    own = [f for f in dist.files or [] if str(f).startswith("trend4h/") and getattr(f, "hash", None)]
+    if not own or Path(dist.locate_file("trend4h")).resolve() != Path(__file__).resolve().parent:
+        return
+    bad = [f for f in changed_files(dist, (".py", ".json")) if f.startswith("trend4h/")]
+    if bad:
+        raise IntegrityError(f"the installed {SELF} differs from the released package ({', '.join(bad[:3])}"
+                             f"{' ...' if len(bad) > 3 else ''}): no new orders are sent. Reinstall it: "
+                             f"pip install --force-reinstall {SELF}. Your own strategy specs and configs go next "
+                             f"to the package, not into it.")
+
+
 def check_files(name="bytx", module=None) -> None:
     """IntegrityError unless `name` is a regular (non-editable) install with intact files, imported from there."""
     try:
         dist = metadata.distribution(name)
     except metadata.PackageNotFoundError:
-        raise IntegrityError(f"{name} is not installed: pip install 'trend4h[live]'") from None
+        raise IntegrityError(f"{name} is not installed: pip install '{SELF}[live]'") from None
     hashed = [f for f in dist.files or [] if str(f).endswith(".py") and getattr(f, "hash", None)]
     if not hashed:
         raise IntegrityError(f"{name} is an editable or unpacked install without file hashes; install the released "
@@ -73,6 +94,8 @@ def check_files(name="bytx", module=None) -> None:
         if actual != expected:
             raise IntegrityError(f"{name} is imported from {actual}, not from the verified install {expected}: "
                                  f"no new orders are sent. Remove the override (PYTHONPATH / sys.path) and reinstall {name}.")
+    if name == "bytx":
+        check_self()
 
 
 def exchange_keys(exchange: str, opts, headers=None) -> list[str]:

@@ -4,6 +4,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from trend4h import config
+
 ROOT = Path(__file__).resolve().parent.parent
 H4, D1 = 14_400_000, 86_400_000
 
@@ -28,4 +30,4 @@ def cut(bars, n):
 
 @pytest.fixture(scope="session")
 def specs():
-    return {p.stem: json.loads(p.read_text()) for p in sorted((ROOT / "specs").glob("*.json"))}
+    return {p.stem: json.loads(p.read_text()) for p in sorted(config.SPECS_DIR.glob("*.json"))}

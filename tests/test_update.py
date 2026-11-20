@@ -99,3 +99,18 @@ def test_two_processes_do_not_update_at_once(tmp_path):
     assert w.up.run(idle(w.now)) is None and w.calls == []
     lock.release()
     assert w.up.run(idle(w.now)) == "restart"
+
+
+def test_a_newer_release_of_this_package_is_only_reported(tmp_path):
+    w = World(tmp_path, index=("0.2.2",), own=lambda: "1.2.0", own_current="1.0.0")
+    assert w.up.run(idle(w.now)) is None and w.events == ["update_own_available"] and w.calls == []   # nothing installed
+    assert w.up.status()["own_available"] == "1.2.0" and w.up.status()["own"] == "1.0.0"
+    w.now += update.CHECK_EVERY + 1
+    w.up.run(idle(w.now))
+    assert w.events == ["update_own_available"]                           # once per version
+    same = World(tmp_path / "b", index=("0.2.2",), own=lambda: "1.0.0", own_current="1.0.0")
+    same.up.run(idle(same.now))
+    assert same.events == [] and same.up.status()["own_available"] is None
+    offline = World(tmp_path / "c", index=("0.2.2",))                     # a fake index never reaches the network
+    offline.up.run(idle(offline.now))
+    assert offline.events == []

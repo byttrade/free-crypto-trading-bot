@@ -1,14 +1,18 @@
-"""Command line: python -m trend4h fetch | run | report | start | live | close | panel | panel-user | mcp."""
+"""Free Crypto Trading Bot by BYTtrade. Commands: fetch | run | report | start | live | close | panel | panel-user | mcp.
+
+The same command line under three names: free-crypto-trading-bot, trend4h and python -m trend4h.
+"""
 from __future__ import annotations
 
 import argparse
 import csv
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import backtest, data
+from . import __version__, backtest, data
 from . import config as cfgmod
 from .config import SPECS_DIR, STRATEGIES as SPECS
 SUMMARY = ["trades", "profit_factor", "sum_R", "sum_R_without_top5", "win_pct", "max_dd_pct", "sharpe_daily",
@@ -35,8 +39,19 @@ def cmd_fetch(a):
     data.fetch(coins, a.start, a.end, a.data_dir)
 
 
+def spec_path(arg: str) -> Path:
+    """A spec file of your own, or one of the built-in strategies by name (kc2_4h_adx1d, with or without .json)."""
+    own = Path(arg)
+    if own.exists():
+        return own
+    builtin = Path(SPECS_DIR) / (own.name if own.suffix == ".json" else own.name + ".json")
+    if builtin.exists():
+        return builtin
+    raise FileNotFoundError(f"{arg} is neither a file nor a built-in strategy ({', '.join(SPECS)})")
+
+
 def cmd_run(a):
-    spec = json.loads(Path(a.spec).read_text())
+    spec = json.loads(spec_path(a.spec).read_text())
     if a.config:
         cfg = cfgmod.load(a.config)
         spec = cfgmod.apply_to_spec(spec, cfg)
@@ -250,7 +265,9 @@ def cmd_panel_user(a):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="trend4h", description=__doc__)
+    ap = argparse.ArgumentParser(prog=Path(sys.argv[0]).name if Path(sys.argv[0]).name in ("free-crypto-trading-bot", "trend4h")
+                                 else "python -m trend4h", description=__doc__)
+    ap.add_argument("--version", action="version", version=f"free-crypto-trading-bot {__version__}")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     f = sub.add_parser("fetch", help="download public Binance USDT-M candles (4h, 1d) and funding")
@@ -260,7 +277,7 @@ def main(argv=None):
     f.set_defaults(fn=cmd_fetch)
 
     r = sub.add_parser("run", help="backtest one spec")
-    r.add_argument("spec", help="path to a spec, e.g. specs/st4h_ema50_1d.json")
+    r.add_argument("spec", help="a built-in strategy by name, e.g. st4h_ema50_1d, or the path to your own spec file")
     r.add_argument("--period", choices=["is", "oos", "all"], default="all")
     r.add_argument("--from", dest="date_from", help="custom range start, YYYY-MM-DD (instead of --period)")
     r.add_argument("--to", dest="date_to", help="custom range end, YYYY-MM-DD inclusive")
@@ -298,11 +315,15 @@ def main(argv=None):
     pn.add_argument("--keyfile")
     pn.add_argument("--behind-https-proxy", action="store_true",
                     help="the panel is behind an HTTPS reverse proxy on this host: trust its X-Forwarded-Proto header")
+    pn.add_argument("--trust-local-publish", action="store_true",
+                    help="container whose port is published only to 127.0.0.1 of its host: accept keys, tokens and "
+                         "the password when the browser opened the panel as http://127.0.0.1 or http://localhost")
     pn.set_defaults(fn=cmd_panel)
     pu = sub.add_parser("panel-user", help="set the login and password of the panel")
     pu.set_defaults(fn=cmd_panel_user)
     mc = sub.add_parser("mcp", help="MCP server (stdio) for your own agent, on top of the panel's token API")
-    mc.add_argument("--url", default="http://127.0.0.1:8790", help="address of the running panel")
+    mc.add_argument("--url", default=os.environ.get("TREND4H_URL", "http://127.0.0.1:8790"),
+                    help="address of the running panel (default: the TREND4H_URL variable, else http://127.0.0.1:8790)")
     mc.add_argument("--token-env", default="TREND4H_TOKEN", help="environment variable that holds the token")
     mc.set_defaults(fn=cmd_mcp)
     for s in (w, lv, cl, pn, pu):

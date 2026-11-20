@@ -29,6 +29,7 @@ from importlib import metadata
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from . import __version__
 from . import config as cfgmod
 from . import live
 
@@ -79,8 +80,8 @@ def set_user(state_dir):
 def check_bind(host: str, user) -> None:
     if host not in LOCAL and not user:
         raise ValueError(f"refusing to listen on {host} without a login and password: run "
-                         f"`python -m trend4h panel-user` first (and use HTTPS or an SSH tunnel: the panel has no TLS "
-                         f"of its own unless --certfile/--keyfile are given)")
+                         f"`free-crypto-trading-bot panel-user` first (Docker: `docker compose run --rm bot panel-user`). "
+                         f"Use HTTPS or an SSH tunnel: the panel has no TLS of its own unless --certfile/--keyfile are given")
 
 
 # ---------------------------------------------------------------- exchange keys in .env
@@ -246,9 +247,9 @@ class Runner:
 
 class Panel:
     def __init__(self, runner: Runner, user=None, clock=time.time, sleep=time.sleep, env_path=".env", https_proxy=False,
-                 closer=close_positions):
+                 closer=close_positions, local_publish=False):
         self.runner, self.user, self.clock, self.sleep, self.closer = runner, user, clock, sleep, closer
-        self.env_path, self.https_proxy = env_path, https_proxy
+        self.env_path, self.https_proxy, self.local_publish = env_path, https_proxy, local_publish
         self.dir = Path(runner.state_dir)
         self.secret = secrets.token_bytes(32)
         self.fails = {}  # ip -> (count, locked_until)
@@ -310,6 +311,11 @@ class Panel:
         if c.get("forwarded"):
             return bool(self.https_proxy) and c.get("proto") == "https"
         host = c.get("host")  # a foreign name pointed at 127.0.0.1 (DNS rebinding) is not local use
+        if self.local_publish:
+            # --trust-local-publish (a container whose port is published to 127.0.0.1 of its host): the socket address
+            # is the container gateway for everyone, so the address the browser used decides. Opened as
+            # http://127.0.0.1:port the traffic stays on the host; opened by the host's name or IP it is refused.
+            return bool(host) and host.rsplit(":", 1)[0].strip("[]") in LOCAL
         return ip in LOOPBACK and (host is None or host.rsplit(":", 1)[0].strip("[]") in LOCAL)
 
     def _config(self, raw) -> dict:
@@ -370,7 +376,8 @@ class Panel:
         f = self.dir / "update.json"
         st = json.loads(f.read_text()) if f.exists() else {}
         return {"mode": cfg["auto_update"], "current": current, "available": st.get("available"),
-                "incompatible": st.get("incompatible"), "checked_at": st.get("checked_at")}
+                "incompatible": st.get("incompatible"), "checked_at": st.get("checked_at"),
+                "own": __version__, "own_available": st.get("own_available")}
 
     def status(self, cookie, ip, conn) -> dict:
         r = self.runner
@@ -690,7 +697,8 @@ def main(a):
         runner.start(cfgmod.validate(json.loads(auto.read_text())))
         auto.unlink()
     server = ThreadingHTTPServer((a.host, a.port), make_handler(
-        Panel(runner, user, https_proxy=getattr(a, "behind_https_proxy", False)), bool(a.certfile)))
+        Panel(runner, user, https_proxy=getattr(a, "behind_https_proxy", False),
+              local_publish=getattr(a, "trust_local_publish", False)), bool(a.certfile)))
     if a.certfile:
         import ssl
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -1014,7 +1022,7 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 <ul class="how"><li data-t="how_tunnel"></li><li data-t="how_proxy"></li><li data-t="how_cert"></li><li data-t="how_env"></li></ul></div></div>
 <p class="hint" id="no-bytx" hidden data-t="no_bytx" style="margin-top:10px"></p></div><div id="keys"></div></div>
 <div class="panel"><header><h2 data-t="bytx_title"></h2></header><div class="body" style="display:flex;flex-direction:column;gap:16px">
-<dl class="dl"><dt data-t="bytx_current"></dt><dd class="num" id="b-cur"></dd><dt data-t="bytx_avail"></dt><dd id="b-av"></dd><dt data-t="bytx_checked"></dt><dd id="b-chk"></dd></dl>
+<dl class="dl"><dt data-t="own_version"></dt><dd id="b-own"></dd><dt data-t="bytx_current"></dt><dd class="num" id="b-cur"></dd><dt data-t="bytx_avail"></dt><dd id="b-av"></dd><dt data-t="bytx_checked"></dt><dd id="b-chk"></dd></dl>
 <div class="field"><span class="label" data-t="bytx_mode"></span><div><div class="seg" id="b-mode"></div></div><span class="hint" id="b-mode-hint"></span></div>
 <div class="row"><button class="btn" id="b-update" data-t="update_now"></button><span class="hint" id="b-update-hint"></span></div></div></div>
 <div class="panel"><header><h2 data-t="ag_title"></h2></header><div class="body" style="display:flex;flex-direction:column;gap:14px">
@@ -1111,7 +1119,7 @@ k_set:"Set",k_unset:"Not set",k_locked:"in use by the running executor",replace:
 keys_for:"{0} keys, {1} account",keys_dialog_hint:"The values are sent once to this panel's server and stored in .env. They are not shown after saving.",keys_save:"Save keys",keys_saved:"Keys saved",keys_removed:"Keys removed",
 f_api_key:"API key",f_secret:"Secret",f_password:"Passphrase",f_wallet_address:"Wallet address",f_private_key:"Private key",
 rm_title:"Remove the {0} {1} keys?",rm_text:"Their lines are deleted from .env. The keys stay valid on the exchange until you delete them there.",
-bytx_title:"bytx SDK updates",bytx_current:"Installed version",bytx_avail:"Available",bytx_checked:"Last check",none_newer:"nothing newer",never:"not yet",not_installed:"not installed",
+bytx_title:"Updates",own_version:"This bot",own_newer:"version {0} is out: pip install -U free-crypto-trading-bot, or pull the new Docker image",bytx_current:"bytx SDK, installed",bytx_avail:"Available",bytx_checked:"Last check",none_newer:"nothing newer",never:"not yet",not_installed:"not installed",
 incompatible:"version {0} needs a newer release of this bot",bytx_mode:"When a new version appears",m_on:"Install",m_notify:"Only tell me",m_off:"Do not check",
 mh_on:"Installed in a quiet window between bars, verified, and rolled back if the check fails.",mh_notify:"The journal reports the new version; you install it yourself.",mh_off:"The package index is not asked at all.",
 update_now:"Update now",update_idle:"Works while the executor is running.",update_asked:"Update requested. It waits for a safe window between bars.",
@@ -1182,7 +1190,7 @@ k_set:"Заданы",k_unset:"Не заданы",k_locked:"используют�
 keys_for:"Ключи {0}, счёт {1}",keys_dialog_hint:"Значения один раз отправляются на сервер панели и сохраняются в .env. После сохранения они не показываются.",keys_save:"Сохранить ключи",keys_saved:"Ключи сохранены",keys_removed:"Ключи удалены",
 f_api_key:"API key",f_secret:"Secret",f_password:"Passphrase",f_wallet_address:"Адрес кошелька",f_private_key:"Приватный ключ",
 rm_title:"Удалить ключи {0} {1}?",rm_text:"Их строки удаляются из .env. На бирже ключи действуют, пока вы не удалите их там.",
-bytx_title:"Обновления SDK bytx",bytx_current:"Установлена версия",bytx_avail:"Доступна",bytx_checked:"Последняя проверка",none_newer:"новее нет",never:"ещё не было",not_installed:"не установлен",
+bytx_title:"Обновления",own_version:"Этот бот",own_newer:"вышла версия {0}: pip install -U free-crypto-trading-bot или новый образ Docker",bytx_current:"SDK bytx, установлен",bytx_avail:"Доступна",bytx_checked:"Последняя проверка",none_newer:"новее нет",never:"ещё не было",not_installed:"не установлен",
 incompatible:"версии {0} нужен более новый выпуск бота",bytx_mode:"Когда выходит новая версия",m_on:"Устанавливать",m_notify:"Только сообщать",m_off:"Не проверять",
 mh_on:"Ставится в спокойное окно между барами, проверяется и откатывается, если проверка не прошла.",mh_notify:"Журнал сообщит о новой версии; ставите её вы сами.",mh_off:"Индекс пакетов не опрашивается.",
 update_now:"Обновить сейчас",update_idle:"Доступно, пока исполнитель работает.",update_asked:"Обновление запрошено. Оно дождётся безопасного окна между барами.",
@@ -1206,15 +1214,15 @@ ag_new_title:"Токен {0}",ag_new_text:"Скопируйте его сейч�
 copy:"Скопировать",copied:"Скопировано",done:"Готово",ag_off:"Токены создаются и отзываются по локальному или HTTPS-соединению.",
 cancel:"Отмена",e_no_keys:"Для этого счёта нет ключей API. Добавьте их в настройках.",e_keys_in_use:"Исполнитель работает на этом счёте. Остановите его, прежде чем менять ключи.",e_insecure:"Это соединение небезопасно для секретов. Нужно локальное или HTTPS-соединение.",e_bad_password:"Текущий пароль неверен.",e_phrase:"Введите фразу в точности как показано.",e_net:"Панель не ответила.",
 }};
-const EV={en:{start:"Started",stopped:"Stopped",bar:"Bar processed",bar_incomplete:"Bar data incomplete",entry:"Position opened",exit:"Position closed",entry_skipped:"Entry skipped",entry_rejected:"Entry rejected",entry_unknown:"Entry outcome unknown",entry_found:"Entry confirmed",entry_lost:"Entry not found",entry_not_filled:"Entry not filled",trail:"Stop moved",trail_failed:"Stop move failed",stop_placed:"Stop placed",stop_not_placed:"Stop not placed",close_failed:"Close failed",cancel_failed:"Cancel failed",orders_blocked:"New orders blocked",orders_unblocked:"Orders unblocked",checks:"Integrity checks",coin_skipped:"Coin skipped",cycle_error:"Cycle error",dry_run_order:"Dry-run order",update_available:"bytx update available",update_start:"bytx update started",update_done:"bytx updated",update_failed:"bytx update failed",update_rolled_back:"bytx rolled back",update_rollback_failed:"bytx rollback failed",update_postponed:"bytx update postponed",update_check_failed:"bytx check failed",update_incompatible:"Incompatible bytx version",agent_config:"Agent saved settings",agent_start:"Agent started the executor",agent_stop:"Agent stopped the executor",agent_close:"Agent closed positions",agent_refused:"Agent request refused"},
-ru:{start:"Запуск",stopped:"Остановка",bar:"Бар обработан",bar_incomplete:"Данные бара неполные",entry:"Позиция открыта",exit:"Позиция закрыта",entry_skipped:"Вход пропущен",entry_rejected:"Вход отклонён",entry_unknown:"Исход входа неизвестен",entry_found:"Вход подтверждён",entry_lost:"Вход не найден",entry_not_filled:"Вход не исполнен",trail:"Стоп передвинут",trail_failed:"Стоп не передвинут",stop_placed:"Стоп поставлен",stop_not_placed:"Стоп не поставлен",close_failed:"Закрытие не удалось",cancel_failed:"Отмена не удалась",orders_blocked:"Новые ордера заблокированы",orders_unblocked:"Ордера разблокированы",checks:"Проверки целостности",coin_skipped:"Монета пропущена",cycle_error:"Ошибка цикла",dry_run_order:"Пробный ордер",update_available:"Доступно обновление bytx",update_start:"Обновление bytx начато",update_done:"bytx обновлён",update_failed:"Обновление bytx не удалось",update_rolled_back:"bytx возвращён к прежней версии",update_rollback_failed:"Откат bytx не удался",update_postponed:"Обновление bytx отложено",update_check_failed:"Проверка bytx не удалась",update_incompatible:"Несовместимая версия bytx",agent_config:"Агент сохранил настройки",agent_start:"Агент запустил исполнитель",agent_stop:"Агент остановил исполнитель",agent_close:"Агент закрыл позиции",agent_refused:"Запрос агента отклонён"}};
+const EV={en:{start:"Started",stopped:"Stopped",bar:"Bar processed",bar_incomplete:"Bar data incomplete",entry:"Position opened",exit:"Position closed",entry_skipped:"Entry skipped",entry_rejected:"Entry rejected",entry_unknown:"Entry outcome unknown",entry_found:"Entry confirmed",entry_lost:"Entry not found",entry_not_filled:"Entry not filled",trail:"Stop moved",trail_failed:"Stop move failed",stop_placed:"Stop placed",stop_not_placed:"Stop not placed",close_failed:"Close failed",cancel_failed:"Cancel failed",orders_blocked:"New orders blocked",orders_unblocked:"Orders unblocked",checks:"Integrity checks",coin_skipped:"Coin skipped",cycle_error:"Cycle error",dry_run_order:"Dry-run order",update_available:"bytx update available",update_start:"bytx update started",update_done:"bytx updated",update_failed:"bytx update failed",update_rolled_back:"bytx rolled back",update_rollback_failed:"bytx rollback failed",update_postponed:"bytx update postponed",update_check_failed:"bytx check failed",update_incompatible:"Incompatible bytx version",update_own_available:"A newer release of this bot is out",agent_config:"Agent saved settings",agent_start:"Agent started the executor",agent_stop:"Agent stopped the executor",agent_close:"Agent closed positions",agent_refused:"Agent request refused"},
+ru:{start:"Запуск",stopped:"Остановка",bar:"Бар обработан",bar_incomplete:"Данные бара неполные",entry:"Позиция открыта",exit:"Позиция закрыта",entry_skipped:"Вход пропущен",entry_rejected:"Вход отклонён",entry_unknown:"Исход входа неизвестен",entry_found:"Вход подтверждён",entry_lost:"Вход не найден",entry_not_filled:"Вход не исполнен",trail:"Стоп передвинут",trail_failed:"Стоп не передвинут",stop_placed:"Стоп поставлен",stop_not_placed:"Стоп не поставлен",close_failed:"Закрытие не удалось",cancel_failed:"Отмена не удалась",orders_blocked:"Новые ордера заблокированы",orders_unblocked:"Ордера разблокированы",checks:"Проверки целостности",coin_skipped:"Монета пропущена",cycle_error:"Ошибка цикла",dry_run_order:"Пробный ордер",update_available:"Доступно обновление bytx",update_start:"Обновление bytx начато",update_done:"bytx обновлён",update_failed:"Обновление bytx не удалось",update_rolled_back:"bytx возвращён к прежней версии",update_rollback_failed:"Откат bytx не удался",update_postponed:"Обновление bytx отложено",update_check_failed:"Проверка bytx не удалась",update_incompatible:"Несовместимая версия bytx",update_own_available:"Вышла новая версия бота",agent_config:"Агент сохранил настройки",agent_start:"Агент запустил исполнитель",agent_stop:"Агент остановил исполнитель",agent_close:"Агент закрыл позиции",agent_refused:"Запрос агента отклонён"}};
 const EXITS={st4h_ema50_1d:[2,10,5],kc2_4h_adx1d:[2,10,5],zmid1d_cloud4h:[3,10,5],bbw1d_lr4h:[3,14,4]};
 const NAMES={binance:"Binance",bybit:"Bybit",okx:"OKX",bingx:"BingX",kucoin:"KuCoin",hyperliquid:"Hyperliquid",bitget:"Bitget",gate:"Gate",mexc:"MEXC",htx:"HTX",blofin:"BloFin"};
 const STEP=14400000,BAD=/fail|reject|orders_blocked|lost|unknown|not_placed|cycle_error|incompatible|refused/,WARN=/skipped|postponed|incomplete|not_filled|rolled_back/;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const store={get(k){try{return localStorage.getItem("t4h."+k)}catch(e){return null}},set(k,v){try{localStorage.setItem("t4h."+k,v)}catch(e){}}};
 let S=null,csrf="",form=null,page="overview",skew=0,jfilter="all",jevents=[],keysFor=null,askResolve=null,tokControl=false;
-let lang=store.get("lang")||((navigator.language||"").toLowerCase().startsWith("ru")?"ru":"en");
+let lang=store.get("lang")==="ru"?"ru":"en";  /* English unless the person chose Russian with the button */
 let themePref=store.get("theme")||"system";
 
 function t(k,...a){let s=(T[lang]&&T[lang][k])||T.en[k]||k;a.forEach((v,i)=>{s=s.split("{"+i+"}").join(v)});return s}
@@ -1377,7 +1385,7 @@ function ask(title,text,ok){$("#da-title").textContent=title;$("#da-text").textC
 $("#d-ask").addEventListener("close",e=>{if(askResolve)askResolve(e.target.returnValue==="ok");askResolve=null});
 async function removeKeys(ex,acc){if(!await ask(t("rm_title",exName(ex),acc),t("rm_text"),t("remove")))return;
   const [s,d]=await api("/api/keys/delete",{exchange:ex,account:acc});toast(s===200?t("keys_removed"):errText(d));refresh()}
-function renderBytx(){const b=S.bytx||{},mode=S.config.auto_update;$("#b-cur").textContent=b.current||t("not_installed");
+function renderBytx(){const b=S.bytx||{},mode=S.config.auto_update;$("#b-own").textContent=(b.own||"")+(b.own_available?" · "+t("own_newer",b.own_available):"");$("#b-cur").textContent=b.current||t("not_installed");
   $("#b-av").textContent=(b.available||t("none_newer"))+(b.incompatible?"; "+t("incompatible",b.incompatible):"");
   $("#b-chk").textContent=b.checked_at?when(b.checked_at*1000):t("never");
   seg($("#b-mode"),[["on",t("m_on")],["notify",t("m_notify")],["off",t("m_off")]],mode,async v=>{const err=await saveConfig({...S.config,auto_update:v});
