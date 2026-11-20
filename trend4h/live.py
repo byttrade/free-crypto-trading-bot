@@ -203,7 +203,17 @@ class Executor:
 
     async def equity(self) -> float:
         bal = await self.ex.balance()
-        return float(bal.total("USDT") or bal.total("USDC") or 0.0)
+        # VST is the virtual USDT of the BingX demo account
+        return float(bal.total("USDT") or bal.total("USDC") or bal.total("VST") or 0.0)
+
+    async def _fill_price(self, sym, order):
+        """Average fill price of a market order; exchanges that answer without it are asked once more by order id."""
+        if order.average:
+            return order.average
+        try:
+            return (await self.ex.order(sym, order.id)).average
+        except self.err.BytxError:
+            return None
 
     # ------------------------------------------------------------ reconciliation
 
@@ -222,7 +232,7 @@ class Executor:
         price = None
         try:
             o = await self.ex.reduce_position(sym, ps, size=pos["size"])
-            price = o.average
+            price = await self._fill_price(sym, o)
         except self.err.PositionAlreadyClosed:
             pass
         except self.err.BytxError as e:  # not re-sent: the next reconciliation looks at the exchange again
@@ -302,6 +312,7 @@ class Executor:
                     await self._finish(pos, reason, price)
                 else:
                     pos["size"] = on_exchange.size
+                    pos["entry"] = pos.get("entry") or on_exchange.entry_price  # the entry answer had no fill price
                     await self._ensure_stop(pos)
         finally:
             self.busy -= 1
@@ -386,7 +397,8 @@ class Executor:
             del self.st["pos"][coin]
             self.save()
             return self.log("entry_not_filled", coin=coin, cid=cid)
-        pos.update(status="open", entry=r.average, size=r.filled_size, best=r.average or price,
+        fill = await self._fill_price(sym, r.entry) if r.entry else r.average
+        pos.update(status="open", entry=fill, size=r.filled_size, best=fill or price,
                    stop_id=r.stop.id if r.stop else None)
         self.save()
         self.log("entry", cid=cid, fill=r.average, size=r.filled_size, warnings=list(r.warnings), **order)
