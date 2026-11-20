@@ -27,8 +27,6 @@ a web panel and 11 exchanges. Free.
 > guarantee future returns. Nothing here is investment advice. You act at your own risk.
 > The software comes without any warranty; see sections 8 and 9 of the [LICENSE](https://github.com/byttrade/free-crypto-trading-bot/blob/main/LICENSE).
 
-**Status: research.** The numbers below are a backtest. No real-money track record exists.
-
 <p align="center"><img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/start-en.gif" width="900" alt="Start on a demo account from the web panel"></p>
 <p align="center"><sub>The panel with demo data: every balance, position and trade in the pictures on this page is invented.</sub></p>
 

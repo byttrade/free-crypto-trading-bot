@@ -2,7 +2,7 @@
 
 [Русская версия](research.ru.md) · [Back to the README](../README.md)
 
-> The numbers on this page are a backtest. No real-money track record exists. Backtest and paper results do not
+> The numbers on this page are a backtest. Backtest and paper results do not
 > guarantee future returns.
 
 ## Test conditions

@@ -652,7 +652,7 @@ versions. The text of the [LICENSE](../LICENSE) is what counts.
 folder, can be backtested with `python -m trend4h run your.json`, using the indicators that already exist. The executor trades the four
 strategies of the project.
 
-**What are the risks?** You can lose the whole deposit. The backtest is not a track record; outside the 20 coins
+**What are the risks?** You can lose the whole deposit. Outside the 20 coins
 the strategies are not confirmed; the four strategies fall together; leverage brings liquidation closer; the
 exchange can be unavailable exactly when the market moves. Read [the limitations](research.md#honest-limitations).
 

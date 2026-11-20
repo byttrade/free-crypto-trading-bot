@@ -6,7 +6,7 @@ Instructions for AI agents and coding assistants that work with this project on 
 
 Free Crypto Trading Bot by BYTtrade: four backtested 4h trend-following strategies for crypto perpetual futures, a
 backtest that anyone can re-run, an executor for 11 exchanges and a local web panel. It is free. It trades
-high-risk instruments: the published numbers are a backtest, not a track record.
+high-risk instruments: the published numbers are a backtest.
 
 - Distribution on PyPI: `free-crypto-trading-bot`. The Python package and the short command are `trend4h`.
 - The same command line has three names: `free-crypto-trading-bot`, `trend4h`, `python -m trend4h`.

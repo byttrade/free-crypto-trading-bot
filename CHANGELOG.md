@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- Documentation wording: the risk warning is the single place for risk statements.
+
 ## 1.0.0
 
 First public release.
@@ -27,6 +31,6 @@ First public release.
 
 ### Notes
 
-- Status: research. The numbers are a backtest; no real-money track record exists.
+- The published numbers are a backtest.
 - The settings, state, keys and downloaded data live in the folder the command is run from, never inside the
   installed package.

@@ -1,6 +1,6 @@
 # Free Crypto Trading Bot by BYTtrade
 
-> A free bot for crypto perpetual futures: four backtested 4h trend-following strategies, a backtest anyone can re-run, an executor for 11 exchanges (Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX, BloFin), a local web panel, a token API and an MCP server for AI agents. Install: `pip install 'free-crypto-trading-bot[live]'`, run: `free-crypto-trading-bot panel`. High risk: the published results are a backtest, not a track record; start on a demo account. Source-available license: running it and adding your own files is allowed, modifying it is not.
+> A free bot for crypto perpetual futures: four backtested 4h trend-following strategies, a backtest anyone can re-run, an executor for 11 exchanges (Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX, BloFin), a local web panel, a token API and an MCP server for AI agents. Install: `pip install 'free-crypto-trading-bot[live]'`, run: `free-crypto-trading-bot panel`. High risk: the published results are a backtest; start on a demo account. Source-available license: running it and adding your own files is allowed, modifying it is not.
 
 ## Docs
 
