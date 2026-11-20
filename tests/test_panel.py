@@ -1,6 +1,7 @@
 """Panel security and control, without sockets or network."""
 import json
 import os
+import re
 import time
 from types import SimpleNamespace as NS
 
@@ -279,3 +280,168 @@ def test_password_can_be_set_from_the_panel_only_with_the_current_one(keys):
     assert wrong[0] == 403 and wrong[1]["code"] == "bad_password"
     short = keys.p.handle("POST", "/api/password", cookie, "127.0.0.1", {"current": "long enough", "login": "boss", "password": "short"}, csrf, LOCAL)
     assert short[0] == 400
+
+
+# ---------------------------------------------------------------- agents: tokens, /api/v1 and the MCP wrapper
+
+@pytest.fixture
+def bots(keys):
+    """`keys` plus a read token, a control token, demo keys for bybit and a recording stand-in for `close`."""
+    keys.now = [time.time()]
+    keys.p.clock, keys.p.sleep, keys.closed = (lambda: keys.now[0]), (lambda s: None), []
+    keys.p.closer = lambda cfg, state_dir: keys.closed.append(cfg["account"]) or {"closed": 2, "still_open": 0}
+    assert post(keys, "/api/keys", {"exchange": "bybit", "account": "demo", "fields": SECRETS})[0] == 200
+    assert post(keys, "/api/keys", {"exchange": "bybit", "account": "real", "fields": SECRETS})[0] == 200
+    keys.reader = post(keys, "/api/tokens", {"name": "reader"})[1]["token"]
+    keys.bot = post(keys, "/api/tokens", {"name": "night bot", "control": True})[1]["token"]
+    return keys
+
+
+def ask(k, method, what, token, body=None, ip="198.51.100.7"):
+    return k.p.handle(method, "/api/v1/" + what, None, ip, body or {}, None, {"auth": f"Bearer {token}"})
+
+
+def test_token_value_is_shown_once_and_only_its_hash_is_stored(bots):
+    f = bots.tmp / "panel-tokens.json"
+    assert (f.stat().st_mode & 0o777) == 0o600 and len(bots.bot) > 40
+    st = bots.p.handle("GET", "/api/status", bots.cookie, "127.0.0.1", {}, None, LOCAL)[1]
+    assert [(t["name"], t["scopes"]) for t in st["tokens"]] == [("reader", ["read"]), ("night bot", ["read", "control"])]
+    everything = f.read_text() + json.dumps([st, ask(bots, "GET", "token", bots.bot)[1], ask(bots, "GET", "config", bots.bot)[1]])
+    assert bots.bot not in everything and bots.reader not in everything and "hash" not in json.dumps(st["tokens"])
+    assert post(bots, "/api/tokens", {"name": "x"}, csrf=None)[0] == 403                    # a person's session with CSRF
+    assert post(bots, "/api/tokens", {"name": "x"}, ip="203.0.113.9", conn={**LOCAL, "host": "203.0.113.5"})[0] == 403
+    assert post(bots, "/api/tokens/delete", {"id": st["tokens"][0]["id"]}, ip="203.0.113.9", conn={**LOCAL, "host": "x"})[0] == 403
+    assert post(bots, "/api/tokens", {"name": ""})[0] == 400
+
+
+def test_a_read_token_reads_and_cannot_control(bots):
+    for what in ("token", "status", "positions", "trades", "journal", "config"):
+        assert ask(bots, "GET", what, bots.reader)[0] == 200, what
+    st = ask(bots, "GET", "status", bots.reader)[1]
+    assert st["account"] == "demo" and st["next_bar"] > st["now"] and st["running"] is False
+    for what in ("config", "start", "stop", "close"):
+        status, body, _ = ask(bots, "POST", what, bots.reader, {"config": {"leverage": 5}})
+        assert status == 403 and body["code"] == "scope", what
+    assert bots.p.config["leverage"] == 3 and not bots.p.runner.running and not bots.closed
+
+
+def test_no_token_reaches_keys_password_tokens_updates_or_a_real_account(bots):
+    answers = []
+    for what in ("keys", "keys/delete", "password", "tokens", "tokens/delete", "update", "logout", "login"):
+        for method in ("GET", "POST"):
+            answers.append(ask(bots, method, what, bots.bot, {"exchange": "okx", "account": "demo", "fields": SECRETS}))
+            assert answers[-1][0] == 404, what
+    bearer = {**LOCAL, "auth": f"Bearer {bots.bot}"}                    # a token is not a session of the panel itself
+    assert bots.p.handle("POST", "/api/keys/delete", None, "127.0.0.1", {"exchange": "bybit", "account": "demo"}, None, bearer)[0] == 401
+    assert bots.p.handle("GET", "/api/status", None, "127.0.0.1", {}, None, bearer)[0] == 401
+
+    answers.append(ask(bots, "POST", "config", bots.bot, {"config": {"account": "real"}}))
+    assert answers[-1][0] == 403 and answers[-1][1]["code"] == "real_forbidden"
+    answers.append(ask(bots, "POST", "config", bots.bot, {"config": {"auto_update": "off"}}))
+    assert answers[-1][0] == 403
+    answers.append(ask(bots, "POST", "config", bots.bot, {"config": {"leverage": 1000}}))   # the same checks as the page
+    assert answers[-1][0] == 400 and "leverage" in answers[-1][1]["error"]
+    assert bots.p.config == panel.cfgmod.DEFAULTS
+
+    assert post(bots, "/api/config", {"config": {"account": "real"}})[0] == 200          # the person chose real
+    for what in ("start", "stop", "close", "config"):
+        answers.append(ask(bots, "POST", what, bots.bot, {"config": {"leverage": 2}, "confirm": live.ACCOUNT_PHRASE}))
+        assert answers[-1][0] == 403 and answers[-1][1]["code"] == "real_forbidden", what
+    assert not bots.p.runner.running and not bots.closed
+    answers += [ask(bots, "GET", what, bots.bot) for what in ("status", "config", "journal")]
+    assert "TESTONLY" not in json.dumps([a[1] for a in answers])
+    refused = [e for e in bots.p.journal(bots.p.config) if e["ev"] == "agent_refused"]
+    assert len(refused) == 4 and refused[0]["token"] == "night bot"
+
+
+def test_a_control_token_works_on_demo_and_its_actions_are_in_the_journal(bots):
+    status, body, _ = ask(bots, "POST", "config", bots.bot, {"config": {"leverage": 5, "coins": ["btc", "eth"]}})
+    assert status == 200 and body["config"]["leverage"] == 5 and bots.p.config["coins"] == ["BTC", "ETH"] and body["warnings"]
+    assert bots.p.config["strategies"] == panel.cfgmod.STRATEGIES                          # only the given keys changed
+    assert ask(bots, "POST", "start", bots.bot)[0] == 200 and wait(lambda: bots.p.runner.running)
+    assert ask(bots, "GET", "status", bots.reader)[1]["running"] is True
+    assert ask(bots, "POST", "close", bots.bot)[1]["code"] == "running"
+    assert ask(bots, "POST", "stop", bots.bot)[0] == 200 and wait(lambda: not bots.p.runner.running)
+    assert ask(bots, "POST", "close", bots.bot)[1] == {"ok": True, "closed": 2, "still_open": 0} and bots.closed == ["demo"]
+    events = [(e["ev"], e["token"]) for e in ask(bots, "GET", "journal", bots.reader)[1]["events"]]
+    assert events == [("agent_config", "night bot"), ("agent_start", "night bot"), ("agent_stop", "night bot"), ("agent_close", "night bot")]
+
+
+def test_revoked_and_wrong_tokens_are_401_then_the_address_is_locked(bots):
+    st = bots.p.handle("GET", "/api/status", bots.cookie, "127.0.0.1", {}, None, LOCAL)[1]
+    assert post(bots, "/api/tokens/delete", {"id": st["tokens"][0]["id"]})[0] == 200
+    assert ask(bots, "GET", "status", bots.reader)[0] == 401                                # revoked
+    assert bots.p.handle("GET", "/api/v1/status", bots.cookie, "127.0.0.1", {}, None, LOCAL)[0] == 401   # a cookie is not a token
+    for n in range(panel.MAX_FAILS):
+        assert ask(bots, "GET", "status", "t4h_guess%d" % n, ip="203.0.113.77")[0] == 401
+    assert ask(bots, "GET", "status", bots.bot, ip="203.0.113.77")[0] == 429               # locked, even with a good one
+    assert ask(bots, "GET", "status", bots.bot, ip="203.0.113.78")[0] == 200
+    bots.now[0] += panel.LOCK_SEC + 1
+    assert ask(bots, "GET", "status", bots.bot, ip="203.0.113.77")[0] == 200
+
+
+def test_requests_per_token_are_limited(bots):
+    for _ in range(panel.RATE_PER_MIN):
+        assert ask(bots, "GET", "token", bots.reader)[0] == 200
+    status, body, _ = ask(bots, "GET", "token", bots.reader)
+    assert status == 429 and body["code"] == "rate_limited"
+    assert ask(bots, "GET", "token", bots.bot)[0] == 200                                    # counted per token
+    bots.now[0] += 61
+    assert ask(bots, "GET", "token", bots.reader)[0] == 200
+
+
+def test_mcp_tools_call_the_token_api(monkeypatch):
+    from trend4h import mcp_server
+    calls = []
+
+    def call(method, what, body=None):
+        calls.append((method, what, body))
+        return {"scopes": scopes} if what == "token" else {"ok": True}
+
+    scopes = ["read"]
+    assert sorted(mcp_server.tools(call, scopes)) == ["get_config", "journal", "positions", "status", "trades"]
+    scopes = ["read", "control"]
+    t = mcp_server.tools(call, scopes)
+    for name in ("status", "positions", "trades", "journal", "get_config", "start_demo", "stop", "close_positions"):
+        assert t[name]() == {"ok": True}
+    t["set_config"]({"leverage": 2})
+    assert calls == [("GET", "status", None), ("GET", "positions", None), ("GET", "trades", None), ("GET", "journal", None),
+                     ("GET", "config", None), ("POST", "start", {}), ("POST", "stop", {}), ("POST", "close", {}),
+                     ("POST", "config", {"config": {"leverage": 2}})]
+
+    class Server:
+        def __init__(self, name):
+            self.name, self.tools = name, {}
+
+        def add_tool(self, fn, name):
+            self.tools[name] = fn
+
+    assert len(mcp_server.build(call, Server).tools) == 9
+    with pytest.raises(ValueError, match="revoked"):
+        mcp_server.build(lambda method, what, body=None: {"ok": False, "error": "missing, wrong or revoked token"}, Server)
+    assert mcp_server.http_call("http://127.0.0.1:1", "x")("GET", "status")["code"] == "unreachable"   # nothing listens there
+    with pytest.raises(ValueError):
+        mcp_server.http_call("file:///etc/passwd", "x")
+    monkeypatch.delenv("TREND4H_TOKEN", raising=False)
+    with pytest.raises(SystemExit, match="TREND4H_TOKEN"):
+        mcp_server.main(NS(url="http://127.0.0.1:1", token_env="TREND4H_TOKEN"))
+
+
+def test_mcp_tools_register_with_the_real_package():
+    pytest.importorskip("mcp")
+    from trend4h import mcp_server
+    server = mcp_server.build(lambda method, what, body=None: {"scopes": ["read", "control"]}, mcp_server.server_class())
+    assert server.name == "trend-4h"
+
+
+def test_every_site_link_in_the_page_carries_the_four_utm_marks():
+    links = re.findall(r'href="([^"]*byttrade\.com[^"]*)"', panel.PAGE)
+    assert len(links) == 5 and "{{site" not in panel.PAGE and panel.PAGE.count("byttrade.com/") == len(links)
+    places = set()
+    for link in links:
+        query = dict(part.split("=") for part in link.replace("&amp;", "&").split("?")[1].split("&"))
+        assert query.pop("utm_content").startswith("panel_")
+        assert query == {"utm_source": "github", "utm_medium": "free_tool", "utm_campaign": "trend-4h"}
+        places.add(link.rsplit("=", 1)[1])
+    assert places == {"panel_sidebar", "panel_trades", "panel_overview", "panel_strategy", "panel_settings"}
+    assert all('target="_blank" rel="noopener noreferrer"' in tag for tag in re.findall(r'<a href="https://byttrade[^>]*>', panel.PAGE))

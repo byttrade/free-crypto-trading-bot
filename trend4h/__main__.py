@@ -1,4 +1,4 @@
-"""Command line: python -m trend4h fetch | run | report | start | live | close | panel | panel-user."""
+"""Command line: python -m trend4h fetch | run | report | start | live | close | panel | panel-user | mcp."""
 from __future__ import annotations
 
 import argparse
@@ -239,6 +239,11 @@ def cmd_panel(a):
     panel.main(a)
 
 
+def cmd_mcp(a):
+    from . import mcp_server
+    mcp_server.main(a)
+
+
 def cmd_panel_user(a):
     from . import panel
     panel.set_user(a.state_dir)
@@ -296,6 +301,10 @@ def main(argv=None):
     pn.set_defaults(fn=cmd_panel)
     pu = sub.add_parser("panel-user", help="set the login and password of the panel")
     pu.set_defaults(fn=cmd_panel_user)
+    mc = sub.add_parser("mcp", help="MCP server (stdio) for your own agent, on top of the panel's token API")
+    mc.add_argument("--url", default="http://127.0.0.1:8790", help="address of the running panel")
+    mc.add_argument("--token-env", default="TREND4H_TOKEN", help="environment variable that holds the token")
+    mc.set_defaults(fn=cmd_mcp)
     for s in (w, lv, cl, pn, pu):
         s.add_argument("--state-dir", default="state", help="where state, journal and locks live (default: state)")
 

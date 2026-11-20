@@ -7,6 +7,8 @@ Security
   delay and temporary lock-out after failed logins, CSRF token on every state-changing request, POST only;
 - exchange keys can be written to .env from the Settings page, only over a local or TLS connection (POST, session,
   CSRF); their values are never sent back, logged or put into error texts, the page only learns "set / not set";
+- the owner's own agents use /api/v1/* with a bearer token made in Settings (only its sha256 is stored, mode 600):
+  never exchange keys, the panel password, tokens or bytx updates, and never a real account;
 - no TLS by default: put it behind an HTTPS reverse proxy or use an SSH tunnel (or pass --certfile/--keyfile).
 """
 from __future__ import annotations
@@ -15,8 +17,10 @@ import asyncio
 import getpass
 import hashlib
 import hmac
+import html
 import json
 import os
+import re
 import secrets
 import sys
 import threading
@@ -34,6 +38,9 @@ PROXY_HEADERS = ("X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Host", "Fo
 ENV_NAMES = {"api_key": "API_KEY", "secret": "SECRET", "password": "PASSWORD",
              "wallet_address": "WALLET_ADDRESS", "private_key": "PRIVATE_KEY"}  # the names live.credentials reads
 PASSPHRASE = ("okx", "kucoin", "bitget", "blofin")
+SITE = "https://byttrade.com/"
+SITE_UTM = "utm_source=github&utm_medium=free_tool&utm_campaign=trend-4h"   # no user data is ever added to these links
+RATE_PER_MIN, MAX_TOKENS = 120, 20   # requests per token per minute; tokens per panel
 SESSION_SEC = 12 * 3600
 MAX_FAILS, LOCK_SEC, FAIL_DELAY = 5, 300, 1.0
 _SCRYPT = dict(n=2 ** 14, r=8, p=1, dklen=32)
@@ -112,6 +119,48 @@ def scrub(text: str) -> str:
         if len(v) >= 6 and k.endswith(("_API_KEY", "_SECRET", "_PASSWORD", "_PRIVATE_KEY")):
             text = text.replace(v, "***")
     return text
+
+
+def site_link(place: str) -> str:
+    """Link to the BYTtrade site from one place of the panel, e.g. panel_sidebar."""
+    return f"{SITE}?{SITE_UTM}&utm_content={place}"
+
+
+def _private(path: Path, text: str) -> None:
+    """Write a file only its owner can read (temporary file + rename)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        fh.write(text)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, path)
+
+
+def close_positions(cfg: dict, state_dir) -> dict:
+    """What `python -m trend4h close` does: close the positions this executor opened (others are not touched)."""
+    from . import integrity
+
+    async def go():
+        live.load_env()
+        integrity.check_files("bytx")  # before bytx gets the keys
+        from bytx import errors
+        ex = live.connect(cfg)
+        lock = None
+        try:
+            lock = live.Lock(Path(state_dir) / f"{cfg['exchange']}-{cfg['account']}.lock")  # no start meanwhile
+            x = live.Executor(cfg, ex, errors, state_dir, guard=integrity.Guard(cfg["exchange"], ex.ccxt),
+                              out=lambda line: None)
+            await x.startup()
+            before = len(x.st["pos"])
+            await x.close_all()
+            return {"closed": before - len(x.st["pos"]), "still_open": len(x.st["pos"])}
+        finally:
+            await ex.close()
+            if lock:
+                lock.release()
+
+    return asyncio.run(go())
 
 
 # ---------------------------------------------------------------- executor runner
@@ -196,8 +245,9 @@ class Runner:
 # ---------------------------------------------------------------- http
 
 class Panel:
-    def __init__(self, runner: Runner, user=None, clock=time.time, sleep=time.sleep, env_path=".env", https_proxy=False):
-        self.runner, self.user, self.clock, self.sleep = runner, user, clock, sleep
+    def __init__(self, runner: Runner, user=None, clock=time.time, sleep=time.sleep, env_path=".env", https_proxy=False,
+                 closer=close_positions):
+        self.runner, self.user, self.clock, self.sleep, self.closer = runner, user, clock, sleep, closer
         self.env_path, self.https_proxy = env_path, https_proxy
         self.dir = Path(runner.state_dir)
         self.secret = secrets.token_bytes(32)
@@ -205,6 +255,9 @@ class Panel:
         self.env_lock = threading.Lock()
         saved = self.dir / "panel-config.json"
         self.config = cfgmod.validate(json.loads(saved.read_text())) if saved.exists() else dict(cfgmod.DEFAULTS)
+        self.tokens_file = self.dir / "panel-tokens.json"
+        self.tokens = json.loads(self.tokens_file.read_text()) if self.tokens_file.exists() else []
+        self.rate, self.tokens_saved = {}, 0.0  # token id -> (minute start, requests)
 
     def sign(self, text: str) -> str:
         return hmac.new(self.secret, text.encode(), hashlib.sha256).hexdigest()
@@ -340,7 +393,8 @@ class Panel:
                 "keys_found": bool(live.credentials(shown["exchange"], shown["account"])),
                 "keys": {e: {a: bool(live.credentials(e, a)) for a in ("demo", "real")} for e in exchanges},
                 "key_fields": {e: key_fields(e) for e in exchanges},
-                "keys_writable": self.secrets_allowed(ip, conn), "login": self.user["login"] if self.user else None}
+                "keys_writable": self.secrets_allowed(ip, conn), "login": self.user["login"] if self.user else None,
+                "tokens": [{k: v for k, v in t.items() if k != "hash"} for t in self.tokens]}
 
     def set_keys(self, body, delete=False):
         """Write or delete the keys of one account in .env. Values never appear in the answer or in error texts."""
@@ -374,8 +428,145 @@ class Panel:
         self.user = load_user(self.dir)
         return 200, {"ok": True}, self.new_session(login)
 
+    def save_config(self, cfg) -> None:
+        self.dir.mkdir(parents=True, exist_ok=True)
+        (self.dir / "panel-config.json").write_text(json.dumps(cfg, indent=1))
+        self.config = cfg
+
+    # ------------------------------------------------------------ agents
+
+    def save_tokens(self) -> None:
+        _private(self.tokens_file, json.dumps(self.tokens, indent=1))
+        self.tokens_saved = self.clock()
+
+    def set_token(self, body, delete=False):
+        """Create (the value is returned once, only its sha256 is kept) or revoke an agent token."""
+        if delete:
+            self.tokens = [t for t in self.tokens if t["id"] != body.get("id")]
+            self.save_tokens()
+            return 200, {"ok": True}, None
+        name = str(body.get("name", "")).strip()
+        if not 1 <= len(name) <= 40 or not name.isprintable() or len(self.tokens) >= MAX_TOKENS:
+            raise ValueError(f"the name needs 1 to 40 characters; at most {MAX_TOKENS} tokens")
+        value = "t4h_" + secrets.token_urlsafe(32)
+        self.tokens.append({"id": secrets.token_hex(4), "name": name,
+                            "scopes": ["read", "control"] if body.get("control") else ["read"],
+                            "hash": hashlib.sha256(value.encode()).hexdigest(), "created": int(self.clock()), "last_used": None})
+        self.save_tokens()
+        return 200, {"ok": True, "token": value}, None
+
+    def audit(self, cfg, event, **kw) -> None:
+        """An agent's action in the journal of the account, next to the executor's own events."""
+        folder = self._folder(cfg)
+        folder.mkdir(parents=True, exist_ok=True)
+        with open(folder / "journal.jsonl", "a") as fh:
+            fh.write(json.dumps({"t": int(self.clock() * 1000), "ev": event, **kw}, ensure_ascii=False) + "\n")
+
+    def agent(self, method, path, ip, body, auth):
+        """/api/v1/*: a bearer token instead of the cookie and CSRF.
+
+        Fixed limits for every token: only the routes below exist here (no keys, password, tokens or bytx update),
+        and everything that changes something works on the demo account only.
+        """
+        count, until = self.fails.get("token:" + ip, (0, 0))
+        if until > self.clock():
+            return 429, {"error": "too many wrong tokens from this address: try later", "code": "locked"}, None
+        given = hashlib.sha256(auth[7:].strip().encode()).hexdigest() if isinstance(auth, str) and auth.startswith("Bearer ") else ""
+        tok = None
+        for t in self.tokens:  # every stored hash is compared, in constant time
+            if hmac.compare_digest(t["hash"], given):
+                tok = t
+        if not tok:
+            count += 1
+            self.fails["token:" + ip] = (0, self.clock() + LOCK_SEC) if count >= MAX_FAILS else (count, 0)
+            self.sleep(FAIL_DELAY)
+            return 401, {"error": "missing, wrong or revoked token", "code": "unauthorized"}, None
+        self.fails.pop("token:" + ip, None)
+        now = self.clock()
+        start, n = self.rate.get(tok["id"], (0, 0))
+        if now - start >= 60:
+            start, n = now, 0
+        self.rate[tok["id"]] = (start, n + 1)
+        if n >= RATE_PER_MIN:
+            return 429, {"error": f"more than {RATE_PER_MIN} requests a minute", "code": "rate_limited"}, None
+        tok["last_used"] = int(now)
+        if now - self.tokens_saved > 60:
+            self.save_tokens()
+
+        r, what = self.runner, path[len("/api/v1/"):]
+        shown = r.cfg if r.running else self.config
+        if method == "GET":
+            full = self.status("", ip, None)
+            m = full["summary"]
+            if what == "token":
+                return 200, {"name": tok["name"], "scopes": tok["scopes"]}, None
+            if what == "status":
+                return 200, {"running": full["running"], "ready": full["ready"], "error": full["error"],
+                             "exchange": shown["exchange"], "account": shown["account"], "blocked": m.get("blocked"),
+                             "now": full["now"], "next_bar": full["next_bar"], "balance": full["balance"],
+                             "open_positions": len(m["open"]), "trades": m["trades"], "sum_R": m["sum_R"],
+                             "pnl_usdt": m["pnl_usdt"], "keys_found": full["keys_found"], "warnings": full["warnings"]}, None
+            if what == "positions":
+                return 200, {"positions": m["open"]}, None
+            if what == "trades":
+                return 200, {"trades": m["closed"], "total": m["trades"], "sum_R": m["sum_R"], "pnl_usdt": m["pnl_usdt"]}, None
+            if what == "journal":
+                return 200, {"events": self.journal(shown)}, None
+            if what == "config":
+                return 200, {"config": self.config, "running_config": r.cfg if r.running else None,
+                             "defaults": cfgmod.DEFAULTS, "warnings": cfgmod.warnings(self.config)}, None
+            return 404, {"error": "not found", "code": "not_found"}, None
+        if method != "POST" or what not in ("config", "start", "stop", "close"):
+            return 404, {"error": "not found", "code": "not_found"}, None
+        if "control" not in tok["scopes"]:
+            return 403, {"error": "this token can only read: create one with the control right", "code": "scope"}, None
+
+        def refuse(reason, code="real_forbidden"):
+            self.audit(shown, "agent_refused", token=tok["name"], action=what, reason=reason)
+            return 403, {"error": reason, "code": code}, None
+
+        real = "the real account is only for a person in the panel: tokens work on demo"
+        try:
+            if what == "config":
+                given_cfg = body.get("config") if isinstance(body.get("config"), dict) else {}
+                cfg = self._config({**self.config, **given_cfg})
+                if cfg["account"] != "demo":
+                    return refuse(real)
+                if any(cfg[k] != self.config[k] for k in ("auto_update", "update_margin_min")):
+                    return refuse("bytx update settings are changed only by a person in the panel", "forbidden")
+                changed = sorted(k for k in cfg if cfg[k] != self.config[k])
+                self.save_config(cfg)
+                self.audit(cfg, "agent_config", token=tok["name"], changed=changed)
+                return 200, {"ok": True, "config": cfg, "warnings": cfgmod.warnings(cfg)}, None
+            if what == "start":
+                cfg = self.config
+                if cfg["account"] != "demo":
+                    return refuse(real)
+                if not self.keys_found(cfg["exchange"], cfg["account"]):
+                    return 400, {"error": f"no API keys for {cfg['exchange']} demo: a person adds them in the panel",
+                                 "code": "no_keys"}, None
+                r.start(cfg)
+                self.audit(cfg, "agent_start", token=tok["name"])
+                return 200, {"ok": True, "warnings": cfgmod.warnings(cfg)}, None
+            if shown["account"] != "demo":
+                return refuse(real)
+            if what == "stop":
+                r.stop()
+                self.audit(shown, "agent_stop", token=tok["name"])
+                return 200, {"ok": True}, None
+            if r.running:
+                return 409, {"error": "stop the executor first, then close its positions", "code": "running"}, None
+            self.audit(shown, "agent_close", token=tok["name"])
+            return 200, {"ok": True, **self.closer(shown, self.dir)}, None
+        except (ValueError, TypeError) as e:
+            return 400, {"error": scrub(str(e)), "code": "bad_request"}, None
+        except Exception as e:  # exchange or lock trouble while closing; nothing is re-sent
+            return 502, {"error": scrub(f"{type(e).__name__}: {e}")[:300], "code": "failed"}, None
+
     def handle(self, method, path, cookie, ip, body: dict, csrf_header, conn=None):
         """Pure request logic: returns (status, json-able payload or html string, new cookie or None)."""
+        if path.startswith("/api/v1/"):
+            return self.agent(method, path, ip, body, (conn or {}).get("auth"))
         if method == "GET" and path == "/":
             if not self.user and not self.session_ok(cookie):
                 cookie = self.new_session("local")  # local use without a password still gets a session for CSRF
@@ -398,9 +589,7 @@ class Panel:
         try:
             if path == "/api/config":
                 cfg = self._config(body.get("config"))
-                self.dir.mkdir(parents=True, exist_ok=True)
-                (self.dir / "panel-config.json").write_text(json.dumps(cfg, indent=1))
-                self.config = cfg
+                self.save_config(cfg)
                 return 200, {"ok": True, "config": cfg, "warnings": cfgmod.warnings(cfg)}, None
             if path == "/api/start":
                 cfg = self._config(body["config"]) if body.get("config") else self.config
@@ -419,13 +608,15 @@ class Panel:
                 return 200, {"ok": True}, None
             if path == "/api/logout":
                 return 200, {"ok": True}, "deleted"
-            if path in ("/api/keys", "/api/keys/delete", "/api/password"):
+            if path in ("/api/keys", "/api/keys/delete", "/api/password", "/api/tokens", "/api/tokens/delete"):
                 if not self.secrets_allowed(ip, conn):
                     return 403, {"error": "secrets are accepted only over a local or HTTPS connection: use an SSH "
                                           "tunnel, an HTTPS proxy with --behind-https-proxy, --certfile, or edit .env "
                                           "on the server", "code": "insecure"}, None
                 if path == "/api/password":
                     return self.set_password(ip, body)
+                if path.startswith("/api/tokens"):
+                    return self.set_token(body, delete=path.endswith("/delete"))
                 return self.set_keys(body, delete=path.endswith("/delete"))
         except (ValueError, TypeError) as e:
             return 400, {"error": str(e)}, None
@@ -458,7 +649,7 @@ def make_handler(panel: Panel, secure: bool):
                     body = {}
             conn = {"tls": secure, "forwarded": any(self.headers.get(h) for h in PROXY_HEADERS),
                     "proto": (self.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip().lower(),
-                    "host": self.headers.get("Host") or ""}
+                    "host": self.headers.get("Host") or "", "auth": self.headers.get("Authorization")}
             status, payload, cookie = panel.handle(method, self.path.split("?")[0], self._cookie(),
                                                    self.client_address[0], body, self.headers.get("X-CSRF-Token"), conn)
             data = payload.encode() if isinstance(payload, str) else json.dumps(payload, default=float).encode()
@@ -544,7 +735,7 @@ svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-widt
 a,.link{color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 
 .app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
-.side{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:22px;padding:22px 14px 16px;background:var(--panel);border-right:1px solid var(--line)}
+.side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:22px;padding:22px 14px 16px;background:var(--panel);border-right:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;padding:0 10px;font-weight:700;font-size:17px;letter-spacing:-.01em}
 .brand svg{width:24px;height:24px;color:var(--accent)}
 .nav{display:flex;flex-direction:column;gap:2px}
@@ -555,6 +746,13 @@ a,.link{color:var(--accent);background:none;border:0;padding:0;cursor:pointer;te
 .risk{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--warn-bg);color:var(--ink);font-size:12.5px;line-height:1.4;text-align:left;cursor:pointer;width:100%}
 .risk svg{color:var(--warn);margin-top:1px}.risk u{color:var(--warn);text-underline-offset:2px;white-space:nowrap}
 .quick{display:flex;gap:8px}
+.byt{display:flex;flex-direction:column;gap:3px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;line-height:1.4;color:var(--mute)}
+.byt b{color:var(--ink);font-size:13px}.byt a{align-self:flex-start}.only-m{display:none}
+.promo{position:relative;display:flex;gap:2px 12px;align-items:baseline;padding:10px 44px 10px 14px;border:1px dashed var(--line);border-radius:10px;font-size:14px;color:var(--mute)}
+.promo b{color:var(--accent);font-weight:650}.promo>span{flex:1;min-width:0}
+.promo .x{border:0;background:none;color:var(--mute);cursor:pointer;padding:6px;border-radius:6px;position:absolute;top:5px;right:6px;display:flex}.promo .x:hover{color:var(--ink)}.promo .x svg{width:15px;height:15px}
+.trow{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.6fr) auto;gap:4px 16px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.trow:first-child{border-top:0}.trow b{font-weight:600}
 .top{display:none}
 main{padding:30px 36px 72px;max-width:1120px;width:100%}
 .page{display:flex;flex-direction:column;gap:18px}
@@ -684,7 +882,8 @@ dialog.real h2{color:var(--danger)}
 @media(max-width:860px){
 .app{display:block}
 .side{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;padding:5px 6px calc(5px + env(safe-area-inset-bottom));border-right:0;border-top:1px solid var(--line);z-index:10}
-.side .brand,.side .foot{display:none}
+.side .brand,.side .foot{display:none}.only-m{display:flex}.promo{flex-direction:column}#p-overview .promo{display:none}
+.trow{grid-template-columns:minmax(0,1fr) auto}.trow>*{grid-column:1}.trow>button{grid-column:2;grid-row:1/3}
 .nav{flex-direction:row;flex:1}
 .nav button{flex:1;flex-direction:column;gap:2px;padding:6px 2px;font-size:11.5px;text-align:center;min-width:0}
 .top{display:flex;flex-direction:column;position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:1px solid var(--line)}
@@ -724,6 +923,7 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
 <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
 <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 2.5h6l1-2.5h5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
 <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
 </svg>
 
@@ -741,6 +941,7 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 <div class="brand"><svg class="i"><use href="#i-mark"/></svg>trend-4h</div>
 <nav class="nav" id="nav"></nav>
 <div class="foot">
+<div class="byt"><b data-t="promo_title"></b><span data-t="promo_side"></span><a href="{{site:panel_sidebar}}" target="_blank" rel="noopener noreferrer" data-t="promo_link"></a></div>
 <button class="risk" data-act="risk"><svg class="i"><use href="#i-warn"/></svg><span><span data-t="risk_short"></span> <u data-t="read_full"></u></span></button>
 <div class="quick"><button class="icon-btn" data-act="lang"></button><button class="icon-btn" data-act="theme" data-ta="theme"></button></div>
 </div></aside>
@@ -768,6 +969,8 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 </div></div>
 <div class="panel"><header><h2 data-t="open_pos"></h2><span class="mute small" id="open-n"></span></header><div id="open"></div></div>
 <div class="panel"><header><h2 data-t="last_trades"></h2><span class="mute small" data-t="last_trades_note"></span></header><div id="closed"></div></div>
+<div class="promo" data-promo="results"><b>BYTtrade</b><span><span data-t="promo_results"></span> <a href="{{site:panel_trades}}" target="_blank" rel="noopener noreferrer" data-t="promo_open"></a></span><button class="x" data-act="hide" data-ta="hide"><svg class="i"><use href="#i-x"/></svg></button></div>
+<div class="byt only-m"><b data-t="promo_title"></b><span data-t="promo_side"></span><a href="{{site:panel_overview}}" target="_blank" rel="noopener noreferrer" data-t="promo_link"></a></div>
 </section>
 
 <section class="page" id="p-strategy" hidden>
@@ -797,6 +1000,7 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 <div class="field"><label for="f-max_total_notional_usdt" data-t="max_total"></label><input id="f-max_total_notional_usdt" class="num" type="text" inputmode="decimal" autocomplete="off" data-tp="no_cap"><span class="hint" data-t="max_total_hint"></span></div>
 <p class="hint" style="grid-column:1/-1" data-t="stop_hint"></p>
 </div></div>
+<div class="promo" data-promo="strategy"><b>BYTtrade</b><span><span data-t="promo_strategy"></span> <a href="{{site:panel_strategy}}" target="_blank" rel="noopener noreferrer" data-t="promo_open"></a></span><button class="x" data-act="hide" data-ta="hide"><svg class="i"><use href="#i-x"/></svg></button></div>
 <div class="savebar" id="savebar" hidden><div style="min-width:0"><b data-t="unsaved"></b><div class="err" id="save-err" hidden></div></div>
 <div class="row"><button class="btn" id="discard" data-t="discard"></button><button class="btn primary" id="save" data-t="save_settings"></button></div></div>
 </section>
@@ -811,6 +1015,10 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 <dl class="dl"><dt data-t="bytx_current"></dt><dd class="num" id="b-cur"></dd><dt data-t="bytx_avail"></dt><dd id="b-av"></dd><dt data-t="bytx_checked"></dt><dd id="b-chk"></dd></dl>
 <div class="field"><span class="label" data-t="bytx_mode"></span><div><div class="seg" id="b-mode"></div></div><span class="hint" id="b-mode-hint"></span></div>
 <div class="row"><button class="btn" id="b-update" data-t="update_now"></button><span class="hint" id="b-update-hint"></span></div></div></div>
+<div class="panel"><header><h2 data-t="ag_title"></h2></header><div class="body" style="display:flex;flex-direction:column;gap:14px">
+<p class="hint" data-t="ag_lead"></p><div id="tokens"></div>
+<form id="tok-form" class="row" autocomplete="off"><input id="tok-name" type="text" maxlength="40" data-tp="ag_name" style="max-width:260px" required><div class="seg" id="tok-scope"></div><button class="btn" data-t="ag_create"></button></form>
+<p class="err" id="tok-err" hidden></p><p class="hint" id="tok-off" hidden data-t="ag_off"></p></div></div>
 <div class="panel"><header><h2 data-t="access_title"></h2></header><div class="body" style="display:flex;flex-direction:column;gap:16px">
 <p id="acc-state"></p>
 <form id="pw-form" class="grid2" autocomplete="off">
@@ -822,6 +1030,7 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 <div class="panel"><header><h2 data-t="look_title"></h2></header><div class="body grid2">
 <div class="field"><span class="label" data-t="language"></span><div><div class="seg" id="s-lang"></div></div></div>
 <div class="field"><span class="label" data-t="theme"></span><div><div class="seg" id="s-theme"></div></div></div></div></div>
+<div class="promo" data-promo="community"><b>BYTtrade</b><span><span data-t="promo_community"></span> <a href="{{site:panel_settings}}" target="_blank" rel="noopener noreferrer" data-t="promo_open"></a></span><button class="x" data-act="hide" data-ta="hide"><svg class="i"><use href="#i-x"/></svg></button></div>
 </section>
 
 <section class="page" id="p-journal" hidden>
@@ -845,6 +1054,9 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 <div class="actions"><button type="button" class="btn" data-close data-t="cancel"></button><button class="btn primary" data-t="keys_save"></button></div></form></dialog>
 <dialog id="d-ask"><form method="dialog"><h2 id="da-title"></h2><p id="da-text"></p>
 <div class="actions"><button type="button" class="btn" data-close data-t="cancel"></button><button class="btn danger" id="da-ok" value="ok"></button></div></form></dialog>
+<dialog id="d-token"><form method="dialog"><h2 id="dt-title"></h2><p class="hint" data-t="ag_new_text"></p>
+<input id="dt-value" class="num" type="text" readonly spellcheck="false" style="max-width:none">
+<div class="actions"><button type="button" class="btn" id="dt-copy" data-t="copy"></button><button class="btn primary" data-t="done"></button></div></form></dialog>
 <div id="toast" role="status" hidden></div>
 
 <script>
@@ -909,6 +1121,16 @@ start_title:"Start the executor",real_title:"Real account: real money is at risk
 n_of:"{0} of {1}",size_risk:"{0}% of balance per trade",size_notional:"{0} USDT per position",
 dirty_warn:"Unsaved changes on the Strategy page are not included. The executor starts with the saved settings.",
 phrase_label:"Type {0} to confirm",start_demo:"Start on demo",start_real:"Start on the real account",stopping:"Stopping. Positions and their stops stay on the exchange.",started:"Executor started",
+promo_title:"Free from BYTtrade",promo_side:"trend-4h is free. The BYTtrade site has more strategies, grid bots and indicators, also free.",promo_link:"More on byttrade.com",promo_open:"Open byttrade.com",hide:"Hide",
+promo_strategy:"More ready-made strategies and indicators, grid bots and setup without writing code are on BYTtrade, free.",
+promo_results:"Backtests on a longer history and more analysis tools are on BYTtrade, free.",
+promo_community:"BYTtrade has a large community where strategies and settings are discussed. The way in is on the site.",
+ag_title:"Agents",ag_lead:"Give your own AI agent access with a token: over the HTTP API (docs/agent-api.md) or the MCP server (python -m trend4h mcp). No token reaches exchange keys, the panel password, other tokens or bytx updates, and none can start a real account.",
+ag_name:"Token name, for example night bot",ag_read:"Read only",ag_control:"Read and control demo",ag_create:"Create token",ag_none:"No tokens yet.",
+ag_r_read:"read",ag_r_control:"read, control demo",ag_dates:"created {0}, last used {1}",ag_never:"never",ag_revoke:"Revoke",ag_revoked:"Token revoked",
+ag_rm_title:"Revoke the token {0}?",ag_rm_text:"The agent that uses it loses access at once.",
+ag_new_title:"Token {0}",ag_new_text:"Copy it now. It is shown once; the panel keeps only its hash. Over plain HTTP from another machine a token travels in clear text: use HTTPS or an SSH tunnel.",
+copy:"Copy",copied:"Copied",done:"Done",ag_off:"Tokens are created and revoked over a local or HTTPS connection.",
 cancel:"Cancel",e_no_keys:"There are no API keys for this account. Add them in Settings.",e_keys_in_use:"The executor is running on this account. Stop it before changing its keys.",e_insecure:"This connection is not safe for secrets. Use a local or HTTPS connection.",e_bad_password:"The current password is wrong.",e_phrase:"Type the phrase exactly as shown.",e_net:"The panel did not answer.",
 },ru:{
 nav_overview:"Обзор",nav_strategy:"Стратегия",nav_settings:"Настройки",nav_journal:"Журнал",
@@ -970,16 +1192,26 @@ start_title:"Запуск исполнителя",real_title:"Реальный �
 n_of:"{0} из {1}",size_risk:"{0}% баланса на сделку",size_notional:"{0} USDT на позицию",
 dirty_warn:"Несохранённые изменения на странице «Стратегия» не учитываются. Исполнитель стартует с сохранёнными настройками.",
 phrase_label:"Введите {0} для подтверждения",start_demo:"Запустить на демо",start_real:"Запустить на реальном счёте",stopping:"Останавливается. Позиции и их стопы остаются на бирже.",started:"Исполнитель запущен",
+promo_title:"Бесплатно от BYTtrade",promo_side:"trend-4h бесплатен. На сайте BYTtrade больше стратегий, сеточные боты и индикаторы — тоже бесплатно.",promo_link:"Больше на byttrade.com",promo_open:"Открыть byttrade.com",hide:"Скрыть",
+promo_strategy:"Больше готовых стратегий и индикаторов, сеточные боты и настройка без кода — на BYTtrade, бесплатно.",
+promo_results:"Бэктест на более длинной истории и больше инструментов анализа — на BYTtrade, бесплатно.",
+promo_community:"У BYTtrade большое сообщество, где обсуждают стратегии и настройки. Вход — на сайте.",
+ag_title:"Агенты",ag_lead:"Дайте своему ИИ-агенту доступ по токену: через HTTP API (docs/agent-api.md) или MCP-сервер (python -m trend4h mcp). Ни один токен не получает ключи бирж, пароль панели, другие токены и обновление bytx и не может запустить реальный счёт.",
+ag_name:"Имя токена, например ночной бот",ag_read:"Только чтение",ag_control:"Чтение и управление demo",ag_create:"Создать токен",ag_none:"Токенов пока нет.",
+ag_r_read:"чтение",ag_r_control:"чтение, управление demo",ag_dates:"создан {0}, использован {1}",ag_never:"ни разу",ag_revoke:"Отозвать",ag_revoked:"Токен отозван",
+ag_rm_title:"Отозвать токен {0}?",ag_rm_text:"Агент, который им пользуется, сразу потеряет доступ.",
+ag_new_title:"Токен {0}",ag_new_text:"Скопируйте его сейчас. Он показывается один раз; панель хранит только хэш. По обычному HTTP с другого компьютера токен идёт открытым текстом: нужен HTTPS или SSH-туннель.",
+copy:"Скопировать",copied:"Скопировано",done:"Готово",ag_off:"Токены создаются и отзываются по локальному или HTTPS-соединению.",
 cancel:"Отмена",e_no_keys:"Для этого счёта нет ключей API. Добавьте их в настройках.",e_keys_in_use:"Исполнитель работает на этом счёте. Остановите его, прежде чем менять ключи.",e_insecure:"Это соединение небезопасно для секретов. Нужно локальное или HTTPS-соединение.",e_bad_password:"Текущий пароль неверен.",e_phrase:"Введите фразу в точности как показано.",e_net:"Панель не ответила.",
 }};
-const EV={en:{start:"Started",stopped:"Stopped",bar:"Bar processed",bar_incomplete:"Bar data incomplete",entry:"Position opened",exit:"Position closed",entry_skipped:"Entry skipped",entry_rejected:"Entry rejected",entry_unknown:"Entry outcome unknown",entry_found:"Entry confirmed",entry_lost:"Entry not found",entry_not_filled:"Entry not filled",trail:"Stop moved",trail_failed:"Stop move failed",stop_placed:"Stop placed",stop_not_placed:"Stop not placed",close_failed:"Close failed",cancel_failed:"Cancel failed",orders_blocked:"New orders blocked",orders_unblocked:"Orders unblocked",checks:"Integrity checks",coin_skipped:"Coin skipped",cycle_error:"Cycle error",dry_run_order:"Dry-run order",update_available:"bytx update available",update_start:"bytx update started",update_done:"bytx updated",update_failed:"bytx update failed",update_rolled_back:"bytx rolled back",update_rollback_failed:"bytx rollback failed",update_postponed:"bytx update postponed",update_check_failed:"bytx check failed",update_incompatible:"Incompatible bytx version"},
-ru:{start:"Запуск",stopped:"Остановка",bar:"Бар обработан",bar_incomplete:"Данные бара неполные",entry:"Позиция открыта",exit:"Позиция закрыта",entry_skipped:"Вход пропущен",entry_rejected:"Вход отклонён",entry_unknown:"Исход входа неизвестен",entry_found:"Вход подтверждён",entry_lost:"Вход не найден",entry_not_filled:"Вход не исполнен",trail:"Стоп передвинут",trail_failed:"Стоп не передвинут",stop_placed:"Стоп поставлен",stop_not_placed:"Стоп не поставлен",close_failed:"Закрытие не удалось",cancel_failed:"Отмена не удалась",orders_blocked:"Новые ордера заблокированы",orders_unblocked:"Ордера разблокированы",checks:"Проверки целостности",coin_skipped:"Монета пропущена",cycle_error:"Ошибка цикла",dry_run_order:"Пробный ордер",update_available:"Доступно обновление bytx",update_start:"Обновление bytx начато",update_done:"bytx обновлён",update_failed:"Обновление bytx не удалось",update_rolled_back:"bytx возвращён к прежней версии",update_rollback_failed:"Откат bytx не удался",update_postponed:"Обновление bytx отложено",update_check_failed:"Проверка bytx не удалась",update_incompatible:"Несовместимая версия bytx"}};
+const EV={en:{start:"Started",stopped:"Stopped",bar:"Bar processed",bar_incomplete:"Bar data incomplete",entry:"Position opened",exit:"Position closed",entry_skipped:"Entry skipped",entry_rejected:"Entry rejected",entry_unknown:"Entry outcome unknown",entry_found:"Entry confirmed",entry_lost:"Entry not found",entry_not_filled:"Entry not filled",trail:"Stop moved",trail_failed:"Stop move failed",stop_placed:"Stop placed",stop_not_placed:"Stop not placed",close_failed:"Close failed",cancel_failed:"Cancel failed",orders_blocked:"New orders blocked",orders_unblocked:"Orders unblocked",checks:"Integrity checks",coin_skipped:"Coin skipped",cycle_error:"Cycle error",dry_run_order:"Dry-run order",update_available:"bytx update available",update_start:"bytx update started",update_done:"bytx updated",update_failed:"bytx update failed",update_rolled_back:"bytx rolled back",update_rollback_failed:"bytx rollback failed",update_postponed:"bytx update postponed",update_check_failed:"bytx check failed",update_incompatible:"Incompatible bytx version",agent_config:"Agent saved settings",agent_start:"Agent started the executor",agent_stop:"Agent stopped the executor",agent_close:"Agent closed positions",agent_refused:"Agent request refused"},
+ru:{start:"Запуск",stopped:"Остановка",bar:"Бар обработан",bar_incomplete:"Данные бара неполные",entry:"Позиция открыта",exit:"Позиция закрыта",entry_skipped:"Вход пропущен",entry_rejected:"Вход отклонён",entry_unknown:"Исход входа неизвестен",entry_found:"Вход подтверждён",entry_lost:"Вход не найден",entry_not_filled:"Вход не исполнен",trail:"Стоп передвинут",trail_failed:"Стоп не передвинут",stop_placed:"Стоп поставлен",stop_not_placed:"Стоп не поставлен",close_failed:"Закрытие не удалось",cancel_failed:"Отмена не удалась",orders_blocked:"Новые ордера заблокированы",orders_unblocked:"Ордера разблокированы",checks:"Проверки целостности",coin_skipped:"Монета пропущена",cycle_error:"Ошибка цикла",dry_run_order:"Пробный ордер",update_available:"Доступно обновление bytx",update_start:"Обновление bytx начато",update_done:"bytx обновлён",update_failed:"Обновление bytx не удалось",update_rolled_back:"bytx возвращён к прежней версии",update_rollback_failed:"Откат bytx не удался",update_postponed:"Обновление bytx отложено",update_check_failed:"Проверка bytx не удалась",update_incompatible:"Несовместимая версия bytx",agent_config:"Агент сохранил настройки",agent_start:"Агент запустил исполнитель",agent_stop:"Агент остановил исполнитель",agent_close:"Агент закрыл позиции",agent_refused:"Запрос агента отклонён"}};
 const EXITS={st4h_ema50_1d:[2,10,5],kc2_4h_adx1d:[2,10,5],zmid1d_cloud4h:[3,10,5],bbw1d_lr4h:[3,14,4]};
 const NAMES={binance:"Binance",bybit:"Bybit",okx:"OKX",bingx:"BingX",kucoin:"KuCoin",hyperliquid:"Hyperliquid",bitget:"Bitget",gate:"Gate",mexc:"MEXC",htx:"HTX",blofin:"BloFin"};
-const STEP=14400000,BAD=/fail|reject|orders_blocked|lost|unknown|not_placed|cycle_error|incompatible/,WARN=/skipped|postponed|incomplete|not_filled|rolled_back/;
+const STEP=14400000,BAD=/fail|reject|orders_blocked|lost|unknown|not_placed|cycle_error|incompatible|refused/,WARN=/skipped|postponed|incomplete|not_filled|rolled_back/;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const store={get(k){try{return localStorage.getItem("t4h."+k)}catch(e){return null}},set(k,v){try{localStorage.setItem("t4h."+k,v)}catch(e){}}};
-let S=null,csrf="",form=null,page="overview",skew=0,jfilter="all",jevents=[],keysFor=null,askResolve=null;
+let S=null,csrf="",form=null,page="overview",skew=0,jfilter="all",jevents=[],keysFor=null,askResolve=null,tokControl=false;
 let lang=store.get("lang")||((navigator.language||"").toLowerCase().startsWith("ru")?"ru":"en");
 let themePref=store.get("theme")||"system";
 
@@ -1022,6 +1254,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-act],[data
   if(b.dataset.go)go(b.dataset.go);else if("close" in b.dataset)b.closest("dialog").close();
   else if(b.dataset.act==="lang")setLang(lang==="ru"?"en":"ru");
   else if(b.dataset.act==="theme")setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
+  else if(b.dataset.act==="hide"){const box=b.closest("[data-promo]");store.set("promo."+box.dataset.promo,"1");box.hidden=true}
   else if(b.dataset.act==="risk"){$("#dr-text").textContent=disc();$("#d-risk").showModal()}});
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyTheme);
 
@@ -1033,7 +1266,7 @@ async function refresh(){const [s,d]=await api("/api/status");
   $("#login").hidden=true;$("#app").hidden=false;S=d;csrf=d.csrf;skew=d.now-Date.now();
   if(!form)loadForm(d.config);render();if(page==="journal")loadJournal()}
 function shown(){return S.active||S.config}
-function render(){renderOverview();formState();renderKeys();renderBytx();renderAccess();tick()}
+function render(){renderOverview();formState();renderKeys();renderBytx();renderTokens();renderAccess();tick()}
 
 function renderOverview(){const c=shown(),m=S.summary||{open:[],closed:[],trades:0,sum_R:0,pnl_usdt:0},x=S.running;
   const st=x?(S.summary&&S.summary.blocked?"blocked":S.ready?"running":"starting"):S.error?"failed":"stopped";
@@ -1150,6 +1383,18 @@ function renderBytx(){const b=S.bytx||{},mode=S.config.auto_update;$("#b-cur").t
   $("#b-mode-hint").textContent=t("mh_"+mode)+(S.running&&S.active.auto_update!==mode?" "+t("running_note"):"");
   $("#b-update").disabled=!S.running;$("#b-update-hint").textContent=S.running?"":t("update_idle")}
 $("#b-update").onclick=async()=>{const [s,d]=await api("/api/update",{});toast(s===200?t("update_asked"):errText(d))};
+function renderTokens(){const box=$("#tokens");box.textContent="";if(!S.tokens.length)box.append(h("p",{class:"mute small"},t("ag_none")));
+  S.tokens.forEach(k=>box.append(h("div",{class:"trow"},h("b",null,k.name),h("span",null,t(k.scopes.includes("control")?"ag_r_control":"ag_r_read")),
+    h("span",{class:"mute small"},t("ag_dates",when(k.created*1000),k.last_used?when(k.last_used*1000):t("ag_never"))),
+    S.keys_writable&&h("button",{class:"btn sm",onclick:async()=>{if(!await ask(t("ag_rm_title",k.name),t("ag_rm_text"),t("ag_revoke")))return;
+      const [s,d]=await api("/api/tokens/delete",{id:k.id});toast(s===200?t("ag_revoked"):errText(d));refresh()}},t("ag_revoke")))));
+  $("#tok-form").hidden=!S.keys_writable;$("#tok-off").hidden=S.keys_writable;
+  seg($("#tok-scope"),[[false,t("ag_read")],[true,t("ag_control")]],tokControl,v=>{tokControl=v;renderTokens()})}
+$("#tok-form").onsubmit=async e=>{e.preventDefault();const name=$("#tok-name").value.trim(),[s,d]=await api("/api/tokens",{name,control:tokControl});
+  if(s!==200)return show($("#tok-err"),errText(d));show($("#tok-err"),"");$("#tok-name").value="";$("#dt-title").textContent=t("ag_new_title",name);
+  $("#dt-value").value=d.token;$("#dt-copy").textContent=t("copy");$("#d-token").showModal();$("#dt-value").select();refresh()};
+$("#dt-copy").onclick=async()=>{const v=$("#dt-value");v.select();try{await navigator.clipboard.writeText(v.value);$("#dt-copy").textContent=t("copied")}catch(e){}};
+$("#d-token").addEventListener("close",()=>{$("#dt-value").value=""});
 function renderAccess(){$("#acc-state").textContent=S.login?t("acc_user",S.login):t("acc_none");$("#pw-cur-w").hidden=!S.login;$("#logout").hidden=!S.login;
   $("#pw-form").hidden=!S.keys_writable;$("#pw-off").hidden=S.keys_writable;const l=$("#pw-login");if(!l.value&&document.activeElement!==l)l.value=S.login||""}
 $("#pw-form").onsubmit=async e=>{e.preventDefault();const [s,d]=await api("/api/password",{current:$("#pw-cur").value,login:$("#pw-login").value.trim(),password:$("#pw-new").value});
@@ -1173,5 +1418,7 @@ function renderJournal(){if(!S)return;const c=shown(),box=$("#journal");box.text
 
 function fromHash(){const p=location.hash.slice(1);if(p!==page&&/^(overview|strategy|settings|journal)$/.test(p))go(p)}
 addEventListener("hashchange",fromHash);fromHash();
+$$("[data-promo]").forEach(e=>{e.hidden=store.get("promo."+e.dataset.promo)==="1"});
 applyTheme();applyLang();refresh();setInterval(refresh,5000);setInterval(tick,1000);
 </script></body></html>"""
+PAGE = re.sub(r"\{\{site:(\w+)\}\}", lambda m: html.escape(site_link(m.group(1))), PAGE)

@@ -15,6 +15,7 @@ dependencies = ["numpy>=1.22", "pandas>=1.5"]
 
 [project.optional-dependencies]
 live = ["bytx>=0.2.2,<0.3"]  # <0.3: a breaking bytx needs a trend-4h release first
+agent = ["mcp>=1.2"]                 # only for `python -m trend4h mcp`
 test = ["pytest>=7"]
 
 [tool.setuptools]

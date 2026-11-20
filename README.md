@@ -17,6 +17,7 @@ What is in the repository:
 | `specs/` | four declarative strategy specifications (JSON) |
 | `results/` | metrics recomputed by this code, plus recorded research tables in `results/recorded/` |
 | `tests/` | pytest suite, runs without network |
+| `docs/agent-api.md` | HTTP API and MCP server for your own agent |
 | `config.example.json`, `.env.example` | settings and key names for the executor |
 
 ## Quick start: reproduce the backtest
@@ -243,6 +244,39 @@ TLS by default**: on a server put it behind an HTTPS reverse proxy or use an SSH
 (`ssh -L 8790:127.0.0.1:8790 server`). Binding to a public address over plain HTTP sends the password in clear
 text. `--certfile/--keyfile` turn on TLS from the Python standard library.
 
+### Connect your own agent
+
+Your own AI agent can read the state and, if you allow it, control the executor on the demo account.
+
+1. In the panel open Settings, Agents and create a token: `read` (status, positions, trades, journal, settings)
+   or `control` (also: save strategy settings, start and stop on demo, close the executor's demo positions). The
+   value is shown once; the panel keeps only its hash.
+2. Give the token to the agent: either the HTTP API (`Authorization: Bearer <token>`, see
+   [docs/agent-api.md](docs/agent-api.md)), or the MCP server:
+
+```bash
+pip install -e '.[agent]'          # adds the mcp package; the panel and the executor work without it
+```
+
+```json
+{
+  "mcpServers": {
+    "trend-4h": {
+      "command": "python",
+      "args": ["-m", "trend4h", "mcp", "--url", "http://127.0.0.1:8790"],
+      "env": {"TREND4H_TOKEN": "<token from the panel>"}
+    }
+  }
+}
+```
+
+What no token can do: read, write or delete exchange keys, touch the panel password, tokens or bytx updates, or
+start a real account (that takes a person in the panel and the confirmation phrase). Settings from an agent pass
+the same checks as settings from the page, and every action of an agent is written to the journal with the token
+name. Tokens also work on a non-local address, but over plain HTTP a token travels in clear text: use HTTPS or
+an SSH tunnel. An agent works through these public interfaces and does not change the code, which is what the
+license allows ("you may add, you may not modify").
+
 ### bytx integrity and auto-update
 
 Orders go out only through the released bytx with its broker attribution. Before start, before every batch of
@@ -307,3 +341,9 @@ PyPI into a process that holds your exchange keys.
   versions; offer it to third parties as a service.
 
 The LICENSE text is what counts; this summary does not replace it. Dependencies and their licenses: [NOTICE](NOTICE).
+
+## BYTtrade
+
+trend-4h is free and made by BYTtrade. On [byttrade.com](https://byttrade.com/?utm_source=github&utm_medium=free_tool&utm_campaign=trend-4h&utm_content=readme_en) there are more strategies, grid bots,
+more indicators and a deeper history for backtests, with nothing to code by hand, and a large community. That is
+free as well.
