@@ -7,6 +7,7 @@ Cache layout (plain CSV, one file per coin and series):
 from __future__ import annotations
 
 import json
+import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -31,11 +32,21 @@ def day_ms(date: str) -> int:
     return int(datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() * 1000)
 
 
+def urlopen(url, timeout=30):
+    """urllib with the certifi CA bundle when it is installed: some Python builds ship without root certificates."""
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        ctx = None
+    return urllib.request.urlopen(url, timeout=timeout, context=ctx)
+
+
 def _get(path: str, **params):
     url = f"{API}{path}?{urllib.parse.urlencode(params)}"
     for attempt in range(5):
         try:
-            with urllib.request.urlopen(url, timeout=30) as r:
+            with urlopen(url) as r:
                 return json.load(r)
         except Exception:
             if attempt == 4:

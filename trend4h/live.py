@@ -462,10 +462,13 @@ class Executor:
                     self.gate()
                     await self.reconcile()
                     last_reconcile = time.time()
-            except self.err.BytxError as e:  # network trouble etc.: nothing is re-sent, the next pass reconciles
+            except (self.err.BytxError, OSError) as e:  # network trouble etc.: nothing is re-sent, the next pass reconciles
                 self.log("cycle_error", error=str(e)[:300])
-            if on_idle and await on_idle(self) == "restart":
-                return "restart"
+            try:
+                if on_idle and await on_idle(self) == "restart":
+                    return "restart"
+            except OSError as e:  # the update check could not reach the index: trading goes on
+                self.log("update_check_failed", error=str(e)[:300])
             try:
                 await asyncio.wait_for(stop.wait(), poll_sec)
             except asyncio.TimeoutError:

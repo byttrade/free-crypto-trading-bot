@@ -21,6 +21,7 @@ import urllib.request
 from importlib import metadata
 from pathlib import Path
 
+from .data import urlopen
 from .live import STEP, Lock
 
 BYTX_MIN, BYTX_BELOW = (0, 2, 2), (0, 3)   # allowed range: >=0.2.2,<0.3 (same as in pyproject.toml)
@@ -46,7 +47,7 @@ def pick(versions) -> tuple[str | None, str | None]:
 
 
 def pypi_versions() -> list[str]:
-    with urllib.request.urlopen("https://pypi.org/pypi/bytx/json", timeout=20) as r:
+    with urlopen("https://pypi.org/pypi/bytx/json", timeout=20) as r:
         return list(json.load(r)["releases"])
 
 
