@@ -4,7 +4,7 @@ Order: remember the current version -> install the new one into this environment
 process (files against the wheel RECORD, import, exchange object without network, attribution sources) ->
 restart the executor. Any failure: the previous version is put back and verified, the reason is logged, the same
 version is not tried again for a day. Protective stops on the exchange are never touched. Only bytx (and what its
-installer pulls in) is updated; trend-4h itself is not.
+installer pulls in) is updated; this project itself is not.
 
 Note: an auto-update installs code from PyPI into a process that holds exchange keys. Set "auto_update" to
 "notify" or "off" in the config if you prefer to update by hand.
@@ -109,7 +109,7 @@ class Updater:
             newer = inside if inside and cur and parse(inside) > cur else None
             if beyond and beyond != self.st.get("incompatible"):
                 self.log("update_incompatible", version=beyond,
-                         note="a newer incompatible bytx is available: update trend-4h")
+                         note="a newer incompatible bytx is available: update this bot (git pull)")
             if newer and newer != self.st.get("available"):
                 self.log("update_available", current=self.current(), version=newer)
             self.st.update(checked_at=now, available=newer, incompatible=beyond)

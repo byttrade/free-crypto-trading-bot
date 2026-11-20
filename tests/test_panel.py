@@ -127,7 +127,7 @@ def test_local_use_without_password_still_gets_session_and_csrf(tmp_path, monkey
     monkeypatch.setattr(live, "supported_exchanges", lambda: ["bybit"])
     p = panel.Panel(panel.Runner(tmp_path, serve=fake_serve), None)
     status, page, cookie = p.handle("GET", "/", None, "127.0.0.1", {}, None)
-    assert status == 200 and cookie and "<title>trend-4h panel</title>" in page and "cdn" not in page.lower()
+    assert status == 200 and cookie and "<title>Free Crypto Trading Bot by BYTtrade</title>" in page and "cdn" not in page.lower()
     assert p.handle("POST", "/api/stop", cookie, "127.0.0.1", {}, None)[0] == 403
     assert p.handle("POST", "/api/login", None, "127.0.0.1", {"login": "", "password": ""}, None)[0] == 401
 
@@ -431,7 +431,7 @@ def test_mcp_tools_register_with_the_real_package():
     pytest.importorskip("mcp")
     from trend4h import mcp_server
     server = mcp_server.build(lambda method, what, body=None: {"scopes": ["read", "control"]}, mcp_server.server_class())
-    assert server.name == "trend-4h"
+    assert server.name == "free-crypto-trading-bot"
 
 
 def test_every_site_link_in_the_page_carries_the_four_utm_marks():
@@ -441,7 +441,7 @@ def test_every_site_link_in_the_page_carries_the_four_utm_marks():
     for link in links:
         query = dict(part.split("=") for part in link.replace("&amp;", "&").split("?")[1].split("&"))
         assert query.pop("utm_content").startswith("panel_")
-        assert query == {"utm_source": "github", "utm_medium": "free_tool", "utm_campaign": "trend-4h"}
+        assert query == {"utm_source": "github", "utm_medium": "free_tool", "utm_campaign": "free-crypto-trading-bot"}
         places.add(link.rsplit("=", 1)[1])
     assert places == {"panel_sidebar", "panel_trades", "panel_overview", "panel_strategy", "panel_settings"}
     assert all('target="_blank" rel="noopener noreferrer"' in tag for tag in re.findall(r'<a href="https://byttrade[^>]*>', panel.PAGE))

@@ -85,7 +85,7 @@ def build(call, server_class):
     info = call("GET", "token")
     if "scopes" not in info:
         raise ValueError(f"the panel refused the token: {info.get('error')}")
-    server = server_class("trend-4h")
+    server = server_class("free-crypto-trading-bot")
     for name, fn in tools(call, info["scopes"]).items():
         server.add_tool(fn, name=name)
     return server

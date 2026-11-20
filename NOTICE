@@ -1,13 +1,13 @@
-trend-4h
+Free Crypto Trading Bot by BYTtrade (trend-4h)
 Copyright (c) 2026 BYTtrade (https://byttrade.com). All rights reserved.
 Licensed under the BYTtrade Source-Available License 1.3 (trend-4h edition), see LICENSE.
 
 Third-party software
 --------------------
 
-trend-4h depends on the third-party packages below. They are installed
-separately from trend-4h, are not covered by the license of trend-4h and
-remain under their own licenses.
+The software depends on the third-party packages below. They are installed
+separately from it, are not covered by its license and remain under their own
+licenses.
 
 - NumPy, https://github.com/numpy/numpy (BSD 3-Clause License)
 - pandas, https://github.com/pandas-dev/pandas (BSD 3-Clause License)
@@ -17,5 +17,9 @@ Optional extra "live" (needed by the executor and the panel):
 - bytx, https://github.com/byttrade/bytx (BYTtrade Source-Available License,
   see the LICENSE and NOTICE files shipped with bytx)
 
+Optional extra "agent" (needed only by the `mcp` command):
+
+- mcp, https://github.com/modelcontextprotocol/python-sdk (MIT License)
+
 Market data downloaded by the fetch command comes from the public Binance
-API and is subject to the terms of Binance; it is not part of trend-4h.
+API and is subject to the terms of Binance; it is not part of this software.

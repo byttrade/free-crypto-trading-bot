@@ -95,7 +95,7 @@ Works with `mcp` 1.x and 2.x. Client configuration:
 ```json
 {
   "mcpServers": {
-    "trend-4h": {
+    "free-crypto-trading-bot": {
       "command": "python",
       "args": ["-m", "trend4h", "mcp", "--url", "http://127.0.0.1:8790"],
       "env": {"TREND4H_TOKEN": "<token from the panel>"}

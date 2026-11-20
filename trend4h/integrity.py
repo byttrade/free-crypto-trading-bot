@@ -1,7 +1,7 @@
 """Orders go out only through bytx as released and with its broker attribution intact.
 
 The bytx license (BYTtrade Source-Available License, sections 2(e), 3(a) and 3(g)) does not permit modified
-copies of bytx or removing, disabling or replacing its Broker Attribution, and the license of trend-4h says the
+copies of bytx or removing, disabling or replacing its Broker Attribution, and the license of this project says the
 same about these checks. When a check fails the executor sends no new orders; protective stops that are already
 on the exchange stay there. Fix: `pip install --force-reinstall bytx` and remove broker overrides from the
 environment.

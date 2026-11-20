@@ -39,7 +39,7 @@ ENV_NAMES = {"api_key": "API_KEY", "secret": "SECRET", "password": "PASSWORD",
              "wallet_address": "WALLET_ADDRESS", "private_key": "PRIVATE_KEY"}  # the names live.credentials reads
 PASSPHRASE = ("okx", "kucoin", "bitget", "blofin")
 SITE = "https://byttrade.com/"
-SITE_UTM = "utm_source=github&utm_medium=free_tool&utm_campaign=trend-4h"   # no user data is ever added to these links
+SITE_UTM = "utm_source=github&utm_medium=free_tool&utm_campaign=free-crypto-trading-bot"   # no user data is ever added to these links
 RATE_PER_MIN, MAX_TOKENS = 120, 20   # requests per token per minute; tokens per panel
 SESSION_SEC = 12 * 3600
 MAX_FAILS, LOCK_SEC, FAIL_DELAY = 5, 300, 1.0
@@ -712,7 +712,7 @@ def main(a):
 
 
 PAGE = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>trend-4h panel</title>
+<title>Free Crypto Trading Bot by BYTtrade</title>
 <script>(function(){var p=null;try{p=localStorage.getItem("t4h.theme")}catch(e){}
 document.documentElement.dataset.theme=p==="light"||p==="dark"?p:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")})()</script>
 <style>
@@ -738,6 +738,8 @@ a,.link{color:var(--accent);background:none;border:0;padding:0;cursor:pointer;te
 .side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:22px;padding:22px 14px 16px;background:var(--panel);border-right:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;padding:0 10px;font-weight:700;font-size:17px;letter-spacing:-.01em}
 .brand svg{width:24px;height:24px;color:var(--accent)}
+.bname{display:flex;flex-direction:column;line-height:1.2;font-size:15px}.bname i{font-style:normal}.side .bname i{display:block}
+.bname small{font-weight:500;font-size:12px;color:var(--mute);letter-spacing:0;margin-top:2px}
 .nav{display:flex;flex-direction:column;gap:2px}
 .nav button{display:flex;align-items:center;gap:11px;padding:9px 10px;border:0;border-radius:8px;background:none;cursor:pointer;color:var(--mute);font-weight:550;text-align:left}
 .nav button:hover{color:var(--ink);background:var(--sunk)}
@@ -928,7 +930,7 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 </svg>
 
 <div id="login" class="login" hidden><form class="panel" id="login-form">
-<div class="brand" style="padding:0"><svg class="i"><use href="#i-mark"/></svg>trend-4h</div>
+<div class="brand" style="padding:0"><svg class="i"><use href="#i-mark"/></svg><span class="bname"><b>Free Crypto <i>Trading Bot</i></b><small>by BYTtrade</small></span></div>
 <div class="field"><label for="l-login" data-t="login">Login</label><input id="l-login" name="login" type="text" autocomplete="username" autocapitalize="none"></div>
 <div class="field"><label for="l-pass" data-t="password">Password</label><input id="l-pass" name="password" type="password" autocomplete="current-password"></div>
 <p class="err" id="l-err" role="alert" hidden></p>
@@ -938,7 +940,7 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 
 <div id="app" class="app" hidden>
 <aside class="side">
-<div class="brand"><svg class="i"><use href="#i-mark"/></svg>trend-4h</div>
+<div class="brand"><svg class="i"><use href="#i-mark"/></svg><span class="bname"><b>Free Crypto <i>Trading Bot</i></b><small>by BYTtrade</small></span></div>
 <nav class="nav" id="nav"></nav>
 <div class="foot">
 <div class="byt"><b data-t="promo_title"></b><span data-t="promo_side"></span><a href="{{site:panel_sidebar}}" target="_blank" rel="noopener noreferrer" data-t="promo_link"></a></div>
@@ -946,7 +948,7 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 <div class="quick"><button class="icon-btn" data-act="lang"></button><button class="icon-btn" data-act="theme" data-ta="theme"></button></div>
 </div></aside>
 <div style="min-width:0">
-<div class="top"><div><div class="brand" style="padding:0"><svg class="i"><use href="#i-mark"/></svg>trend-4h</div>
+<div class="top"><div><div class="brand" style="padding:0"><svg class="i"><use href="#i-mark"/></svg><span class="bname"><b>Free Crypto <i>Trading Bot</i></b><small>by BYTtrade</small></span></div>
 <div class="quick"><button class="icon-btn" data-act="lang"></button><button class="icon-btn" data-act="theme" data-ta="theme"></button></div></div>
 <button class="risk" data-act="risk"><svg class="i"><use href="#i-warn"/></svg><span><span data-t="risk_tiny"></span> <u data-t="read_full"></u></span></button></div>
 <main>
@@ -1110,7 +1112,7 @@ keys_for:"{0} keys, {1} account",keys_dialog_hint:"The values are sent once to t
 f_api_key:"API key",f_secret:"Secret",f_password:"Passphrase",f_wallet_address:"Wallet address",f_private_key:"Private key",
 rm_title:"Remove the {0} {1} keys?",rm_text:"Their lines are deleted from .env. The keys stay valid on the exchange until you delete them there.",
 bytx_title:"bytx SDK updates",bytx_current:"Installed version",bytx_avail:"Available",bytx_checked:"Last check",none_newer:"nothing newer",never:"not yet",not_installed:"not installed",
-incompatible:"version {0} needs a newer trend-4h",bytx_mode:"When a new version appears",m_on:"Install",m_notify:"Only tell me",m_off:"Do not check",
+incompatible:"version {0} needs a newer release of this bot",bytx_mode:"When a new version appears",m_on:"Install",m_notify:"Only tell me",m_off:"Do not check",
 mh_on:"Installed in a quiet window between bars, verified, and rolled back if the check fails.",mh_notify:"The journal reports the new version; you install it yourself.",mh_off:"The package index is not asked at all.",
 update_now:"Update now",update_idle:"Works while the executor is running.",update_asked:"Update requested. It waits for a safe window between bars.",
 access_title:"Access to the panel",acc_none:"No password is set: the panel answers only on this computer (127.0.0.1).",acc_user:"Signed in as {0}.",
@@ -1121,7 +1123,7 @@ start_title:"Start the executor",real_title:"Real account: real money is at risk
 n_of:"{0} of {1}",size_risk:"{0}% of balance per trade",size_notional:"{0} USDT per position",
 dirty_warn:"Unsaved changes on the Strategy page are not included. The executor starts with the saved settings.",
 phrase_label:"Type {0} to confirm",start_demo:"Start on demo",start_real:"Start on the real account",stopping:"Stopping. Positions and their stops stay on the exchange.",started:"Executor started",
-promo_title:"Free from BYTtrade",promo_side:"trend-4h is free. The BYTtrade site has more strategies, grid bots and indicators, also free.",promo_link:"More on byttrade.com",promo_open:"Open byttrade.com",hide:"Hide",
+promo_title:"Free from BYTtrade",promo_side:"This bot is free. The BYTtrade site has more strategies, grid bots and indicators, also free.",promo_link:"More on byttrade.com",promo_open:"Open byttrade.com",hide:"Hide",
 promo_strategy:"More ready-made strategies and indicators, grid bots and setup without writing code are on BYTtrade, free.",
 promo_results:"Backtests on a longer history and more analysis tools are on BYTtrade, free.",
 promo_community:"BYTtrade has a large community where strategies and settings are discussed. The way in is on the site.",
@@ -1181,7 +1183,7 @@ keys_for:"Ключи {0}, счёт {1}",keys_dialog_hint:"Значения од�
 f_api_key:"API key",f_secret:"Secret",f_password:"Passphrase",f_wallet_address:"Адрес кошелька",f_private_key:"Приватный ключ",
 rm_title:"Удалить ключи {0} {1}?",rm_text:"Их строки удаляются из .env. На бирже ключи действуют, пока вы не удалите их там.",
 bytx_title:"Обновления SDK bytx",bytx_current:"Установлена версия",bytx_avail:"Доступна",bytx_checked:"Последняя проверка",none_newer:"новее нет",never:"ещё не было",not_installed:"не установлен",
-incompatible:"версии {0} нужен более новый trend-4h",bytx_mode:"Когда выходит новая версия",m_on:"Устанавливать",m_notify:"Только сообщать",m_off:"Не проверять",
+incompatible:"версии {0} нужен более новый выпуск бота",bytx_mode:"Когда выходит новая версия",m_on:"Устанавливать",m_notify:"Только сообщать",m_off:"Не проверять",
 mh_on:"Ставится в спокойное окно между барами, проверяется и откатывается, если проверка не прошла.",mh_notify:"Журнал сообщит о новой версии; ставите её вы сами.",mh_off:"Индекс пакетов не опрашивается.",
 update_now:"Обновить сейчас",update_idle:"Доступно, пока исполнитель работает.",update_asked:"Обновление запрошено. Оно дождётся безопасного окна между барами.",
 access_title:"Доступ к панели",acc_none:"Пароль не задан: панель отвечает только на этом компьютере (127.0.0.1).",acc_user:"Вы вошли как {0}.",
@@ -1192,7 +1194,7 @@ start_title:"Запуск исполнителя",real_title:"Реальный �
 n_of:"{0} из {1}",size_risk:"{0}% баланса на сделку",size_notional:"{0} USDT на позицию",
 dirty_warn:"Несохранённые изменения на странице «Стратегия» не учитываются. Исполнитель стартует с сохранёнными настройками.",
 phrase_label:"Введите {0} для подтверждения",start_demo:"Запустить на демо",start_real:"Запустить на реальном счёте",stopping:"Останавливается. Позиции и их стопы остаются на бирже.",started:"Исполнитель запущен",
-promo_title:"Бесплатно от BYTtrade",promo_side:"trend-4h бесплатен. На сайте BYTtrade больше стратегий, сеточные боты и индикаторы — тоже бесплатно.",promo_link:"Больше на byttrade.com",promo_open:"Открыть byttrade.com",hide:"Скрыть",
+promo_title:"Бесплатно от BYTtrade",promo_side:"Этот бот бесплатен. На сайте BYTtrade больше стратегий, сеточные боты и индикаторы — тоже бесплатно.",promo_link:"Больше на byttrade.com",promo_open:"Открыть byttrade.com",hide:"Скрыть",
 promo_strategy:"Больше готовых стратегий и индикаторов, сеточные боты и настройка без кода — на BYTtrade, бесплатно.",
 promo_results:"Бэктест на более длинной истории и больше инструментов анализа — на BYTtrade, бесплатно.",
 promo_community:"У BYTtrade большое сообщество, где обсуждают стратегии и настройки. Вход — на сайте.",
