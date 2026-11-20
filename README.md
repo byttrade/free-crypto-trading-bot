@@ -220,19 +220,27 @@ you change them. `python -m trend4h run <spec> --config your.json` shows your se
 ### Control panel
 
 ```bash
-python -m trend4h panel            # http://127.0.0.1:8787
+python -m trend4h panel            # http://127.0.0.1:8790
 python -m trend4h panel-user       # set a login and password (needed for any non-local address)
 ```
 
-One page: exchange, account, strategies, risk, Start / Stop, state, open positions, last trades, journal, bytx
-version. It drives the same executor as `live` (one instance, same lock). Exchange keys are never typed into or
-shown by the panel; it only says whether keys for the chosen exchange were found in `.env` on the server.
+Four sections, English and Russian, light and dark theme. Overview: state, Start / Stop, time to the next 4h
+bar, balance, result, open positions and last trades. Strategy: exchange and account, strategies, coins, size,
+leverage, limits; settings are saved separately from starting. Settings: exchange API keys, bytx updates, the
+panel login and password, language and theme. Journal: executor events with a filter for problems. The panel
+drives the same executor as `live` (one instance, same lock).
+
+API keys are added in Settings: the panel writes them to the same `.env` (mode 600), never shows them again
+(only "set / not set"), and does not let you change the keys of the account the executor is running on. The key
+form is available only when the panel is opened locally (127.0.0.1, an SSH tunnel included) or over HTTPS
+(`--certfile`, or an HTTPS reverse proxy plus the `--behind-https-proxy` flag); over plain HTTP from another
+address put the keys into `.env` on the server instead.
 
 Security: the panel listens on 127.0.0.1. It refuses any other address until a login and password are set. Only
 a salted scrypt hash is stored (`state/panel-user.json`, mode 600). Sessions use a signed HttpOnly SameSite=Strict
 cookie, failed logins are delayed and locked out, every change is a POST with a CSRF token. **The panel has no
 TLS by default**: on a server put it behind an HTTPS reverse proxy or use an SSH tunnel
-(`ssh -L 8787:127.0.0.1:8787 server`). Binding to a public address over plain HTTP sends the password in clear
+(`ssh -L 8790:127.0.0.1:8790 server`). Binding to a public address over plain HTTP sends the password in clear
 text. `--certfile/--keyfile` turn on TLS from the Python standard library.
 
 ### bytx integrity and auto-update

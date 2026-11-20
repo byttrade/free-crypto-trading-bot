@@ -1,5 +1,6 @@
 """Panel security and control, without sockets or network."""
-import asyncio
+import json
+import os
 import time
 from types import SimpleNamespace as NS
 
@@ -109,7 +110,7 @@ def test_real_account_needs_the_phrase_and_keys_are_never_sent_to_the_page(rig):
     assert wait(lambda: rig.p.runner.running)
     page = rig.p.handle("GET", "/", cookie, "1.1.1.1", {}, None)[1]
     status_text = str(rig.p.handle("GET", "/api/status", cookie, "1.1.1.1", {}, None)[1])
-    assert "api_key" not in status_text and "api_key" not in page and "password" in page  # only the login form field
+    assert "'x'" not in status_text and "password" in page  # the fake key value is "x"; fields are type=password
     rig.p.runner.stop()
     assert wait(lambda: not rig.p.runner.running)
 
@@ -128,3 +129,153 @@ def test_local_use_without_password_still_gets_session_and_csrf(tmp_path, monkey
     assert status == 200 and cookie and "<title>trend-4h panel</title>" in page and "cdn" not in page.lower()
     assert p.handle("POST", "/api/stop", cookie, "127.0.0.1", {}, None)[0] == 403
     assert p.handle("POST", "/api/login", None, "127.0.0.1", {"login": "", "password": ""}, None)[0] == 401
+
+
+# ---------------------------------------------------------------- settings, journal and state for the page
+
+def test_settings_are_saved_separately_from_start_and_survive_a_restart(rig):
+    cookie, csrf = signed_in(rig)
+    status, body, _ = rig.p.handle("POST", "/api/config", cookie, "1.1.1.1", {"config": {"exchange": "okx", "leverage": 5}}, csrf)
+    assert status == 200 and body["config"]["leverage"] == 5 and not rig.p.runner.running
+    assert rig.p.handle("POST", "/api/config", cookie, "1.1.1.1", {"config": {"leverage": None}}, csrf)[0] == 400
+    assert rig.p.handle("POST", "/api/config", cookie, "1.1.1.1", {"config": {"exchange": "../x"}}, csrf)[0] == 400
+    again = panel.Panel(panel.Runner(rig.tmp, serve=fake_serve), panel.load_user(rig.tmp))
+    assert again.config["exchange"] == "okx" and again.config["leverage"] == 5
+    assert rig.p.handle("POST", "/api/start", cookie, "1.1.1.1", {}, csrf)[0] == 200   # starts with the saved settings
+    assert wait(lambda: rig.p.runner.running) and rig.p.runner.cfg["exchange"] == "okx"
+    rig.p.runner.stop()
+    assert wait(lambda: not rig.p.runner.running)
+
+
+def test_status_reads_positions_balance_and_next_bar_while_stopped(rig):
+    folder = rig.tmp / "bybit-demo"
+    folder.mkdir()
+    (folder / "state.json").write_text(json.dumps({"last_bar": 1, "pos": {"BTC": {"coin": "BTC", "side": 1}}, "closed": [
+        {"coin": "ETH", "pnl": 12.5, "R": 1.5}, {"coin": "SOL", "pnl": -4.0, "R": -1.0}]}))
+    (folder / "journal.jsonl").write_text(json.dumps({"t": 5000, "ev": "start", "equity": 987.6}) + "\nnot json\n"
+                                          + json.dumps({"t": 6000, "ev": "entry_rejected", "error": "nope"}) + "\n")
+    cookie, _ = signed_in(rig)
+    st = rig.p.handle("GET", "/api/status", cookie, "1.1.1.1", {}, None)[1]
+    assert st["summary"]["trades"] == 2 and st["summary"]["pnl_usdt"] == 8.5 and st["summary"]["sum_R"] == 0.5
+    assert [p["coin"] for p in st["summary"]["open"]] == ["BTC"]
+    assert st["balance"] == {"value": 987.6, "at": 5.0, "live": False}
+    assert st["next_bar"] > st["now"] and st["next_bar"] % live.STEP == 0 and st["next_bar"] - st["now"] <= live.STEP
+    events = rig.p.handle("GET", "/api/journal", cookie, "1.1.1.1", {}, None)[1]["events"]
+    assert [e["ev"] for e in events] == ["start", "entry_rejected"]
+    assert rig.p.handle("GET", "/api/journal", None, "1.1.1.1", {}, None)[0] == 401
+
+
+# ---------------------------------------------------------------- exchange keys
+
+SECRETS = {"api_key": "TESTONLYkey0001", "secret": "TESTONLYsecret0002", "password": "TESTONLYphrase0003"}
+LOCAL = {"tls": False, "forwarded": False, "proto": "", "host": "127.0.0.1:8790"}
+
+
+@pytest.fixture
+def keys(tmp_path, monkeypatch):
+    """A panel with the real key reading and a .env in a temporary folder; the process environment is a copy."""
+    monkeypatch.setattr(os, "environ", {k: v for k, v in os.environ.items() if "_DEMO_" not in k and "_REAL_" not in k})
+    monkeypatch.setattr(live, "supported_exchanges", lambda: ["bybit", "okx", "hyperliquid"])
+    env = tmp_path / ".env"
+    env.write_text("# my notes\nOTHER=1\nOKX_DEMO_API_KEY=old\nBYBIT_REAL_SECRET=keepme\n")
+    p = panel.Panel(panel.Runner(tmp_path, serve=fake_serve), None, env_path=env)
+    cookie = p.handle("GET", "/", None, "127.0.0.1", {}, None)[2]
+    csrf = p.handle("GET", "/api/status", cookie, "127.0.0.1", {}, None, LOCAL)[1]["csrf"]
+    return NS(p=p, env=env, cookie=cookie, csrf=csrf, tmp=tmp_path)
+
+
+def post(k, path, body, ip="127.0.0.1", conn=LOCAL, csrf=True):
+    return k.p.handle("POST", path, k.cookie, ip, body, k.csrf if csrf is True else csrf, conn)
+
+
+def test_keys_are_written_to_env_with_mode_600_and_other_lines_stay(keys):
+    status, body, _ = post(keys, "/api/keys", {"exchange": "okx", "account": "demo", "fields": SECRETS})
+    assert status == 200 and body == {"ok": True, "set": True}
+    lines = keys.env.read_text().splitlines()
+    assert lines[:3] == ["# my notes", "OTHER=1", "BYBIT_REAL_SECRET=keepme"]          # untouched, old okx line replaced
+    assert sorted(lines[3:]) == ["OKX_DEMO_API_KEY=TESTONLYkey0001", "OKX_DEMO_PASSWORD=TESTONLYphrase0003",
+                                 "OKX_DEMO_SECRET=TESTONLYsecret0002"]
+    assert (keys.env.stat().st_mode & 0o777) == 0o600 and not list(keys.tmp.glob(".env.*"))
+    assert live.credentials("okx", "demo") == SECRETS                                  # the executor reads the same names
+    st = keys.p.handle("GET", "/api/status", keys.cookie, "127.0.0.1", {}, None, LOCAL)[1]
+    assert st["keys"]["okx"] == {"demo": True, "real": False} and st["keys_writable"]
+    assert st["key_fields"]["hyperliquid"] == ["wallet_address", "private_key"]
+
+    assert post(keys, "/api/keys/delete", {"exchange": "okx", "account": "demo"})[0] == 200
+    assert keys.env.read_text().splitlines() == ["# my notes", "OTHER=1", "BYBIT_REAL_SECRET=keepme"]
+    assert live.credentials("okx", "demo") == {}
+
+
+def test_key_values_are_never_returned_by_any_endpoint(keys):
+    answers = [post(keys, "/api/keys", {"exchange": "okx", "account": "demo", "fields": SECRETS})]
+    (keys.tmp / "okx-demo").mkdir()
+    (keys.tmp / "okx-demo" / "journal.jsonl").write_text(json.dumps({"t": 1, "ev": "cycle_error", "error": "bad TESTONLYsecret0002"}) + "\n")
+    keys.p.runner.error = "AuthError: key TESTONLYkey0001 rejected"
+    keys.p.runner.lines = ["oops TESTONLYphrase0003"]
+    answers.append(post(keys, "/api/config", {"config": {"exchange": "okx"}}))
+    answers += [keys.p.handle("GET", path, keys.cookie, "127.0.0.1", {}, None, LOCAL) for path in ("/", "/api/status", "/api/journal")]
+    answers.append(post(keys, "/api/keys", {"exchange": "okx", "account": "demo", "fields": {**SECRETS, "secret": "TESTONLY bad value"}}))
+    answers.append(post(keys, "/api/keys", {"exchange": "nope", "account": "demo", "fields": SECRETS}))
+    answers.append(post(keys, "/api/start", {"config": {"exchange": "okx", "account": "real"}, "confirm": live.ACCOUNT_PHRASE}))
+    text = json.dumps([a[1] for a in answers])
+    assert "TESTONLY" not in text and "keepme" not in text and "***" in text
+    assert answers[-3][0] == 400 and answers[-2][0] == 400
+
+
+def test_keys_need_a_session_csrf_and_post(keys):
+    body = {"exchange": "bybit", "account": "demo", "fields": SECRETS}
+    assert post(keys, "/api/keys", body, csrf=None)[0] == 403
+    assert post(keys, "/api/keys", body, csrf="wrong")[0] == 403
+    assert keys.p.handle("POST", "/api/keys", None, "127.0.0.1", body, keys.csrf, LOCAL)[0] == 401
+    assert keys.p.handle("GET", "/api/keys", keys.cookie, "127.0.0.1", body, keys.csrf, LOCAL)[0] == 405
+    assert post(keys, "/api/keys", {**body, "fields": {"api_key": "TESTONLYkey0001"}})[0] == 400   # the secret is missing
+    assert "BYBIT_DEMO" not in keys.env.read_text()
+
+
+def test_keys_are_refused_over_plain_http_from_another_address(keys):
+    body = {"exchange": "bybit", "account": "demo", "fields": SECRETS}
+    remote = {**LOCAL, "host": "203.0.113.5:8790"}
+    status, answer, _ = post(keys, "/api/keys", body, ip="203.0.113.9", conn=remote)
+    assert status == 403 and answer["code"] == "insecure" and "SSH" in answer["error"]
+    assert post(keys, "/api/keys/delete", {"exchange": "okx", "account": "demo"}, ip="203.0.113.9", conn=remote)[0] == 403
+    assert post(keys, "/api/password", {"login": "a", "password": "long enough"}, ip="203.0.113.9", conn=remote)[0] == 403
+    assert post(keys, "/api/keys", body, conn={**LOCAL, "host": "evil.example:8790"})[0] == 403   # DNS rebinding
+    assert not keys.p.handle("GET", "/api/status", keys.cookie, "203.0.113.9", {}, None, remote)[1]["keys_writable"]
+    assert "BYBIT_DEMO" not in keys.env.read_text() and "OKX_DEMO_API_KEY=old" in keys.env.read_text()
+    assert post(keys, "/api/keys", body, ip="203.0.113.9", conn={**remote, "tls": True})[0] == 200   # --certfile
+
+
+def test_a_reverse_proxy_is_trusted_only_with_the_flag(keys):
+    body = {"exchange": "bybit", "account": "demo", "fields": SECRETS}
+    proxied = {**LOCAL, "forwarded": True, "proto": "https", "host": "panel.example"}
+    assert post(keys, "/api/keys", body, conn=proxied)[0] == 403        # looks local, but the browser is elsewhere
+    keys.p.https_proxy = True
+    assert post(keys, "/api/keys", body, conn={**proxied, "proto": "http"})[0] == 403
+    assert post(keys, "/api/keys", body, conn=proxied)[0] == 200
+
+
+def test_keys_of_the_running_account_cannot_be_changed_or_deleted(keys):
+    body = {"exchange": "bybit", "account": "demo", "fields": SECRETS}
+    assert post(keys, "/api/keys", body)[0] == 200
+    assert post(keys, "/api/start", {"config": {"exchange": "bybit"}})[0] == 200
+    assert wait(lambda: keys.p.runner.running)
+    before = keys.env.read_text()
+    status, answer, _ = post(keys, "/api/keys", {**body, "fields": {"api_key": "TESTONLYnew", "secret": "TESTONLYnew2"}})
+    assert status == 409 and answer["code"] == "keys_in_use"
+    assert post(keys, "/api/keys/delete", {"exchange": "bybit", "account": "demo"})[0] == 409
+    assert keys.env.read_text() == before
+    assert post(keys, "/api/keys", {**body, "account": "real"})[0] == 200   # another account is free to edit
+    keys.p.runner.stop()
+    assert wait(lambda: not keys.p.runner.running)
+    assert post(keys, "/api/keys/delete", {"exchange": "bybit", "account": "demo"})[0] == 200
+
+
+def test_password_can_be_set_from_the_panel_only_with_the_current_one(keys):
+    status, _, cookie = post(keys, "/api/password", {"login": "boss", "password": "long enough"})
+    assert status == 200 and keys.p.user["login"] == "boss" and "long enough" not in (keys.tmp / "panel-user.json").read_text()
+    assert not keys.p.session_ok(keys.cookie) and keys.p.session_ok(cookie)   # the password-less session is over
+    csrf = keys.p.csrf(cookie)
+    wrong = keys.p.handle("POST", "/api/password", cookie, "127.0.0.1", {"current": "nope", "login": "boss", "password": "another one"}, csrf, LOCAL)
+    assert wrong[0] == 403 and wrong[1]["code"] == "bad_password"
+    short = keys.p.handle("POST", "/api/password", cookie, "127.0.0.1", {"current": "long enough", "login": "boss", "password": "short"}, csrf, LOCAL)
+    assert short[0] == 400

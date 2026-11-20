@@ -288,9 +288,11 @@ def main(argv=None):
         s.add_argument("--margin-mode", dest="margin_mode", choices=["cross", "isolated"])
     pn = sub.add_parser("panel", help="local control panel in the browser")
     pn.add_argument("--host", default="127.0.0.1")
-    pn.add_argument("--port", type=int, default=8787)
+    pn.add_argument("--port", type=int, default=8790)
     pn.add_argument("--certfile")
     pn.add_argument("--keyfile")
+    pn.add_argument("--behind-https-proxy", action="store_true",
+                    help="the panel is behind an HTTPS reverse proxy on this host: trust its X-Forwarded-Proto header")
     pn.set_defaults(fn=cmd_panel)
     pu = sub.add_parser("panel-user", help="set the login and password of the panel")
     pu.set_defaults(fn=cmd_panel_user)
