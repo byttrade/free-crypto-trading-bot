@@ -10,8 +10,6 @@ from pathlib import Path
 from .data import COINS
 
 SPECS_DIR = Path(__file__).resolve().parent / "specs"  # the built-in strategies ship inside the package
-if not SPECS_DIR.is_dir():
-    SPECS_DIR = SPECS_DIR.parent.parent / "specs"
 STRATEGIES = ["st4h_ema50_1d", "kc2_4h_adx1d", "zmid1d_cloud4h", "bbw1d_lr4h"]
 DEFAULTS = {
     "exchange": "bybit",
