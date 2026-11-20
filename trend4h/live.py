@@ -103,6 +103,7 @@ class Lock:
     """One executor per state directory."""
 
     def __init__(self, path):
+        Path(path).parent.mkdir(parents=True, exist_ok=True)  # first run: the state directory does not exist yet
         self.fh = open(path, "a+")
         try:
             import fcntl
