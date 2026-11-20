@@ -3,7 +3,7 @@
   "name": "io.github.byttrade/free-crypto-trading-bot",
   "title": "Free Crypto Trading Bot",
   "description": "Status, positions, trades and demo-account control of the Free Crypto Trading Bot panel.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "websiteUrl": "https://github.com/byttrade/free-crypto-trading-bot",
   "repository": {
     "url": "https://github.com/byttrade/free-crypto-trading-bot",
@@ -13,7 +13,7 @@
     {
       "registryType": "pypi",
       "identifier": "free-crypto-trading-bot",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "runtimeHint": "uvx",
       "runtimeArguments": [
         {

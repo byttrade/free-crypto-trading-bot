@@ -40,7 +40,7 @@ a web panel and 11 exchanges. Free.
   a real account starts only after you type a confirmation phrase.
 - 🔌 **11 exchanges, demo first.** Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX, BloFin.
   Start on a demo account where the exchange has one.
-- 💸 **Free.** No subscription and no paid tier. How BYTtrade earns is explained [in the guide](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/guide.md#faq).
+- 💸 **Free.** No subscription and no paid tier.
 
 It is for people who want to try systematic trading on a demo account and check a backtest themselves. It is not
 for anyone who expects a guaranteed income: read [the limitations](#honest-limitations) first.

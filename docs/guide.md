@@ -639,11 +639,6 @@ The main journal events:
 
 **Is it really free?** Yes. There is no subscription, no paid tier and no fee to BYTtrade.
 
-**Then how does BYTtrade earn?** Through the broker programmes of the exchanges. On the exchanges where bytx has
-a broker code (in bytx 0.2.2: Bybit, OKX, KuCoin and BloFin) orders carry BYTtrade's broker identifier, and the
-exchange shares a part of its own fee with BYTtrade. You pay the exchange its usual fees, nothing on top. This is
-why the broker attribution cannot be switched off and why the integrity checks exist.
-
 **Can I change the code?** No: the license lets you run the software, trade with it and add your own strategy
 specs, configs and your own code next to it, but not modify the project or bytx, and not distribute modified
 versions. The text of the [LICENSE](../LICENSE) is what counts.

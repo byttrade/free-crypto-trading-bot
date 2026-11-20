@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Documentation wording.
+
 ## 1.0.1
 
 - Documentation wording: the risk warning is the single place for risk statements.
