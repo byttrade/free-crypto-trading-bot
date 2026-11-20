@@ -1,0 +1,17 @@
+strategy,period,side,trades,profit_factor,sum_R
+st4h_ema50_1d,IS,long,433,0.99,-3.38
+st4h_ema50_1d,IS,short,406,1.78,183.98
+st4h_ema50_1d,OOS,long,113,1.21,15.72
+st4h_ema50_1d,OOS,short,239,1.77,118.12
+kc2_4h_adx1d,IS,long,356,1.41,90.06
+kc2_4h_adx1d,IS,short,304,1.67,121.89
+kc2_4h_adx1d,OOS,long,149,1.17,16.47
+kc2_4h_adx1d,OOS,short,117,2.65,102.77
+zmid1d_cloud4h,IS,long,358,1.28,55.28
+zmid1d_cloud4h,IS,short,435,1.53,113.08
+zmid1d_cloud4h,OOS,long,157,1.34,26.24
+zmid1d_cloud4h,OOS,short,161,2.07,82.18
+bbw1d_lr4h,IS,long,531,1.53,114.59
+bbw1d_lr4h,IS,short,517,1.29,63.16
+bbw1d_lr4h,OOS,long,228,1.29,28.74
+bbw1d_lr4h,OOS,short,238,1.74,82.63

@@ -1,0 +1,106 @@
+{
+ "st4h_ema50_1d": {
+  "is": {
+   "trades": 839,
+   "profit_factor": 1.33,
+   "sum_R": 180.6,
+   "sum_R_without_top5": 154.07,
+   "win_pct": 31.1,
+   "max_dd_pct": 41.4,
+   "sharpe_daily": 0.96,
+   "fees_R": 21.02,
+   "funding_R": 5.48,
+   "median_stop_pct": 4.72
+  },
+  "oos": {
+   "trades": 352,
+   "profit_factor": 1.59,
+   "sum_R": 133.84,
+   "sum_R_without_top5": 108.69,
+   "win_pct": 33.2,
+   "max_dd_pct": 50.3,
+   "sharpe_daily": 1.46,
+   "fees_R": 8.77,
+   "funding_R": 3.0,
+   "median_stop_pct": 4.72
+  }
+ },
+ "kc2_4h_adx1d": {
+  "is": {
+   "trades": 660,
+   "profit_factor": 1.53,
+   "sum_R": 211.95,
+   "sum_R_without_top5": 185.46,
+   "win_pct": 33.8,
+   "max_dd_pct": 38.52,
+   "sharpe_daily": 1.26,
+   "fees_R": 17.32,
+   "funding_R": 5.93,
+   "median_stop_pct": 4.44
+  },
+  "oos": {
+   "trades": 266,
+   "profit_factor": 1.74,
+   "sum_R": 119.25,
+   "sum_R_without_top5": 94.1,
+   "win_pct": 37.6,
+   "max_dd_pct": 50.59,
+   "sharpe_daily": 1.43,
+   "fees_R": 7.97,
+   "funding_R": 2.78,
+   "median_stop_pct": 4.0
+  }
+ },
+ "zmid1d_cloud4h": {
+  "is": {
+   "trades": 793,
+   "profit_factor": 1.41,
+   "sum_R": 168.36,
+   "sum_R_without_top5": 150.63,
+   "win_pct": 38.2,
+   "max_dd_pct": 42.49,
+   "sharpe_daily": 1.36,
+   "fees_R": 12.75,
+   "funding_R": 1.31,
+   "median_stop_pct": 7.26
+  },
+  "oos": {
+   "trades": 318,
+   "profit_factor": 1.7,
+   "sum_R": 108.42,
+   "sum_R_without_top5": 91.63,
+   "win_pct": 40.6,
+   "max_dd_pct": 35.01,
+   "sharpe_daily": 1.78,
+   "fees_R": 5.88,
+   "funding_R": 1.04,
+   "median_stop_pct": 6.36
+  }
+ },
+ "bbw1d_lr4h": {
+  "is": {
+   "trades": 1048,
+   "profit_factor": 1.41,
+   "sum_R": 177.75,
+   "sum_R_without_top5": 154.24,
+   "win_pct": 41.9,
+   "max_dd_pct": 25.39,
+   "sharpe_daily": 1.27,
+   "fees_R": 20.32,
+   "funding_R": 6.22,
+   "median_stop_pct": 5.65
+  },
+  "oos": {
+   "trades": 466,
+   "profit_factor": 1.53,
+   "sum_R": 111.37,
+   "sum_R_without_top5": 88.0,
+   "win_pct": 38.6,
+   "max_dd_pct": 69.32,
+   "sharpe_daily": 1.43,
+   "fees_R": 9.62,
+   "funding_R": 2.74,
+   "median_stop_pct": 5.64
+  }
+ }
+}

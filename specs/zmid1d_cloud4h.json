@@ -1,0 +1,77 @@
+{
+ "name": "Ichimoku(9/26/52/26) cloud breakout on 4h while the daily close is within 1 sigma of SMA(75); SL 3 / TP 10 / trail 5 ATR",
+ "coins": "all",
+ "base_tf": "4h",
+ "exit": {
+  "sl": {
+   "atr": 3.0
+  },
+  "tp": {
+   "atr": 10.0
+  },
+  "trail": {
+   "atr": 5.0
+  },
+  "atr_period": 14
+ },
+ "long": {
+  "conditions": [
+   {
+    "id": "e",
+    "indicator": "ichimoku",
+    "tf": "4h",
+    "settings": {
+     "conversion": 9,
+     "base": 26,
+     "span_b": 52,
+     "displacement": 26
+    },
+    "condition": "price_breaks_cloud_up"
+   },
+   {
+    "id": "r",
+    "indicator": "sma_zscore",
+    "tf": "1d",
+    "settings": {
+     "length": 75
+    },
+    "condition": "between",
+    "params": {
+     "lower": -1.0,
+     "upper": 1.0
+    }
+   }
+  ],
+  "expression": "e and r"
+ },
+ "short": {
+  "conditions": [
+   {
+    "id": "e",
+    "indicator": "ichimoku",
+    "tf": "4h",
+    "settings": {
+     "conversion": 9,
+     "base": 26,
+     "span_b": 52,
+     "displacement": 26
+    },
+    "condition": "price_breaks_cloud_down"
+   },
+   {
+    "id": "r",
+    "indicator": "sma_zscore",
+    "tf": "1d",
+    "settings": {
+     "length": 75
+    },
+    "condition": "between",
+    "params": {
+     "lower": -1.0,
+     "upper": 1.0
+    }
+   }
+  ],
+  "expression": "e and r"
+ }
+}

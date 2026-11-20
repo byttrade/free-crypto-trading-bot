@@ -1,0 +1,178 @@
+BYTtrade Source-Available License
+Version 1.3 (trend-4h edition)
+
+Copyright (c) 2026 BYTtrade (https://byttrade.com). All rights reserved.
+
+This license governs the use of trend-4h (the "Software"). By downloading,
+installing, copying or using the Software you accept this license. If you do
+not accept it, do not use the Software.
+
+1. Definitions
+
+"BYTtrade" means the owner of the BYTtrade brand and of the website
+https://byttrade.com, together with its successors and assigns.
+
+"Software" means the trend-4h source code, documentation, strategy
+specifications and configuration examples published by BYTtrade with this
+license, excluding the third-party components listed in the NOTICE file.
+
+"You" means the individual or legal entity exercising rights under this
+license, together with any entity that controls, is controlled by or is under
+common control with that entity.
+
+"Distribute" means to make a copy available to any third party by any means,
+including through a package index, a public or private repository, a
+container image, an installer or as part of another product.
+
+"Broker Attribution" means the broker, partner and referral identifiers, and
+the related request signing, that the Software sends to exchanges on behalf
+of BYTtrade, including through the bytx library that the Software uses.
+
+2. What you may do
+
+Subject to your compliance with this license, BYTtrade grants you a
+worldwide, non-exclusive, non-transferable, non-sublicensable, royalty-free
+license to:
+
+(a) download and install the Software from its official source,
+    https://github.com/byttrade/trend-4h;
+
+(b) use the Software for any lawful purpose, including commercial purposes
+    and trading on your own account, by running it as an application on
+    computers and servers that you operate, subject to section 3(e);
+
+(c) use the Software through its public interfaces, namely its command
+    line, its control panel and the configuration files and environment
+    variables described in its documentation, and add your own strategy
+    specification files, configuration files and your own code that calls
+    the Software through these interfaces without changing the files of the
+    Software, subject to section 3(g);
+
+(d) make the copies of the Software reasonably necessary for the uses above,
+    such as installations on computers, servers, containers and continuous
+    integration systems that you operate, and backups;
+
+(e) change your own installed copy solely to keep it working in your
+    environment or to correct errors, provided that the changed copy is used
+    only by you, is never Distributed, and leaves Broker Attribution, the
+    integrity checks of the Software and the notices referred to in section
+    3(f) intact; and
+
+(f) use the strategy specifications and configuration examples of the
+    Software as a starting point for your own strategy specification and
+    configuration files, but not for any software library, SDK or framework.
+
+Viewing and forking the source repository through GitHub's own features is
+permitted to the extent required by GitHub's Terms of Service. It grants no
+other rights in the Software.
+
+3. What you may not do
+
+Except as expressly permitted in section 2, you may not:
+
+(a) modify, adapt, translate or create derivative works of the Software, or
+    Distribute any modified version of it;
+
+(b) copy the Software or any part of it, including its source code,
+    documentation, strategy specifications and examples, into any other
+    software library, SDK, framework, application or project, whether open
+    source or proprietary;
+
+(c) Distribute, publish, sell, rent, lease, lend or sublicense the Software,
+    including by publishing the Software, a fork or a modified version to a
+    package index, registry or public repository;
+
+(d) use the Software or any part of it to develop or offer a software
+    library, SDK, framework, API, application or trading bot for exchange
+    connectivity or trading;
+
+(e) offer the Software, or functionality provided by it, to third parties as
+    a hosted or managed service, including a service through which third
+    parties connect their own exchange accounts and trade;
+
+(f) remove, alter or obscure any copyright, license or attribution notice in
+    the Software, including the LICENSE and NOTICE files;
+
+(g) remove, disable, replace or circumvent Broker Attribution or the
+    integrity checks of the Software by any means, including modification,
+    monkey-patching, proxying, configuration or environment settings. Use of
+    the Software without Broker Attribution, or with any other identifiers,
+    requires a separate written license from BYTtrade; or
+
+(h) use the names, logos or trademarks of BYTtrade, bytx or trend-4h, except
+    to state truthfully that you use trend-4h.
+
+4. Third-party components
+
+The Software depends on other software, including NumPy, pandas and the
+bytx library of BYTtrade, that is licensed under its own terms, as listed in
+the NOTICE file. Those components are not covered by this license, and
+nothing in this license limits your rights under their licenses. The bytx
+library is governed by its own BYTtrade Source-Available License.
+
+5. Contributions
+
+If you submit code, documentation or other material to BYTtrade, for example
+as a pull request, patch or issue, you grant BYTtrade a perpetual, worldwide,
+non-exclusive, irrevocable, royalty-free license to use, reproduce, modify,
+sublicense and distribute it under any terms, and you confirm that you have
+the right to grant this license.
+
+6. Ownership
+
+The Software is licensed, not sold. BYTtrade retains all right, title and
+interest in the Software. All rights not expressly granted in this license
+are reserved.
+
+7. Termination
+
+Your rights under this license end automatically if you breach it. If
+BYTtrade notifies you of a breach and you cure it within 30 days, your rights
+are reinstated; this applies to the first breach only. When your rights end,
+you must stop using the Software and delete all copies in your possession or
+control. Sections 3 to 12 survive termination.
+
+8. No warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+9. Limitation of liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BYTTRADE OR ITS
+AFFILIATES BE LIABLE FOR ANY CLAIM, DAMAGES, TRADING LOSSES, LOST PROFITS OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
+
+The Software sends instructions to third-party exchanges. It is not
+financial, investment or tax advice. You are solely responsible for your
+orders, positions, funds and API keys, and for complying with the rules of
+the exchanges you use and the laws that apply to you.
+
+10. Versions of this license
+
+Each version of the Software is governed by the license included with it.
+BYTtrade may publish new versions of this license for future versions of the
+Software.
+
+11. Governing law and jurisdiction
+
+This license is governed by the laws of the Emirate of Dubai and the federal
+laws of the United Arab Emirates as applied in the Emirate of Dubai, without
+regard to conflict-of-laws rules. The courts of the Emirate of Dubai, United
+Arab Emirates, have exclusive jurisdiction over any dispute arising out of or
+in connection with this license or the Software. BYTtrade may nevertheless
+bring proceedings to protect its intellectual property rights, including for
+injunctive relief, in any court of competent jurisdiction. The United Nations
+Convention on Contracts for the International Sale of Goods does not apply.
+
+12. Severability
+
+If any provision of this license is held to be unenforceable, it shall be
+enforced to the maximum extent permitted by law, and the remaining provisions
+remain in full force.
+
+For permissions not granted in this license, contact BYTtrade via
+https://byttrade.com.

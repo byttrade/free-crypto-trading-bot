@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trend4h"
+dynamic = ["version"]
+description = "Four 4h trend-following strategies on Binance USDT-M perpetuals: reproducible backtest and executor"
+readme = "README.md"
+license = "LicenseRef-BYTtrade-Source-Available-1.3"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.10"
+authors = [{ name = "BYTtrade" }]
+dependencies = ["numpy>=1.22", "pandas>=1.5"]
+
+[project.optional-dependencies]
+live = ["bytx>=0.2.2,<0.3"]  # <0.3: a breaking bytx needs a trend-4h release first
+test = ["pytest>=7"]
+
+[tool.setuptools]
+packages = ["trend4h"]
+
+[tool.setuptools.dynamic]
+version = { attr = "trend4h.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

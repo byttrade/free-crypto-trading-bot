@@ -1,0 +1,73 @@
+{
+ "name": "4h close outside the linear regression channel(50, 2 sigma) while daily Bollinger(20, 2) width is below 0.20; SL 3 / TP 14 / trail 4 ATR",
+ "coins": "all",
+ "base_tf": "4h",
+ "exit": {
+  "sl": {
+   "atr": 3.0
+  },
+  "tp": {
+   "atr": 14.0
+  },
+  "trail": {
+   "atr": 4.0
+  },
+  "atr_period": 14
+ },
+ "long": {
+  "conditions": [
+   {
+    "id": "e",
+    "indicator": "linreg_channel",
+    "tf": "4h",
+    "settings": {
+     "length": 50,
+     "mult": 2.0
+    },
+    "condition": "price_above_upper"
+   },
+   {
+    "id": "r",
+    "indicator": "bb",
+    "tf": "1d",
+    "settings": {
+     "length": 20,
+     "mult": 2.0
+    },
+    "condition": "bandwidth_below",
+    "params": {
+     "value": 0.2
+    }
+   }
+  ],
+  "expression": "e and r"
+ },
+ "short": {
+  "conditions": [
+   {
+    "id": "e",
+    "indicator": "linreg_channel",
+    "tf": "4h",
+    "settings": {
+     "length": 50,
+     "mult": 2.0
+    },
+    "condition": "price_below_lower"
+   },
+   {
+    "id": "r",
+    "indicator": "bb",
+    "tf": "1d",
+    "settings": {
+     "length": 20,
+     "mult": 2.0
+    },
+    "condition": "bandwidth_below",
+    "params": {
+     "value": 0.2
+    }
+   }
+  ],
+  "expression": "e and r"
+ }
+}

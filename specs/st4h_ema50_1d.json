@@ -1,0 +1,65 @@
+{
+ "name": "Supertrend(10, 3) flip on 4h in the direction of the daily trend (1d close above/below EMA50); SL 2 / TP 10 / trail 5 ATR",
+ "coins": "all",
+ "base_tf": "4h",
+ "long": {
+  "conditions": [
+   {
+    "id": "entry",
+    "indicator": "supertrend",
+    "tf": "4h",
+    "settings": {
+     "atr_period": 10,
+     "mult": 3.0
+    },
+    "condition": "price_crosses_above_supertrend"
+   },
+   {
+    "id": "regime",
+    "indicator": "ema",
+    "tf": "1d",
+    "settings": {
+     "period": 50
+    },
+    "condition": "price_above_ma"
+   }
+  ],
+  "expression": "entry and regime"
+ },
+ "short": {
+  "conditions": [
+   {
+    "id": "entry",
+    "indicator": "supertrend",
+    "tf": "4h",
+    "settings": {
+     "atr_period": 10,
+     "mult": 3.0
+    },
+    "condition": "price_crosses_below_supertrend"
+   },
+   {
+    "id": "regime",
+    "indicator": "ema",
+    "tf": "1d",
+    "settings": {
+     "period": 50
+    },
+    "condition": "price_below_ma"
+   }
+  ],
+  "expression": "entry and regime"
+ },
+ "exit": {
+  "sl": {
+   "atr": 2.0
+  },
+  "tp": {
+   "atr": 10.0
+  },
+  "trail": {
+   "atr": 5.0
+  },
+  "atr_period": 14
+ }
+}

@@ -1,0 +1,18 @@
+{
+  "exchange": "bybit",
+  "account": "demo",
+  "strategies": ["st4h_ema50_1d", "kc2_4h_adx1d", "zmid1d_cloud4h", "bbw1d_lr4h"],
+  "coins": ["BTC", "ETH", "SOL", "XRP", "BNB", "DOGE", "ADA", "LINK", "AVAX", "SUI",
+            "LTC", "DOT", "NEAR", "AAVE", "TRX", "BCH", "UNI", "ARB", "OP", "INJ"],
+  "sizing": "risk",
+  "risk_pct": 0.056,
+  "notional_usdt": 100.0,
+  "leverage": 3,
+  "margin_mode": "cross",
+  "max_positions": 20,
+  "max_total_notional_usdt": null,
+  "fee": 0.0005,
+  "slippage": 0.0002,
+  "auto_update": "on",
+  "update_margin_min": 60
+}

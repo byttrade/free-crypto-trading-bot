@@ -1,0 +1,73 @@
+{
+ "name": "Keltner(20, 20, 2) channel breakout on 4h while daily ADX(14) is below 20; SL 2 / TP 10 / trail 5 ATR",
+ "coins": "all",
+ "base_tf": "4h",
+ "exit": {
+  "sl": {
+   "atr": 2.0
+  },
+  "tp": {
+   "atr": 10.0
+  },
+  "trail": {
+   "atr": 5.0
+  },
+  "atr_period": 14
+ },
+ "long": {
+  "conditions": [
+   {
+    "id": "b",
+    "indicator": "keltner",
+    "tf": "4h",
+    "settings": {
+     "ema_period": 20,
+     "atr_period": 20,
+     "mult": 2.0
+    },
+    "condition": "price_crosses_above_upper"
+   },
+   {
+    "id": "q",
+    "indicator": "adx",
+    "tf": "1d",
+    "settings": {
+     "period": 14
+    },
+    "condition": "adx_below",
+    "params": {
+     "level": 20
+    }
+   }
+  ],
+  "expression": "b and q"
+ },
+ "short": {
+  "conditions": [
+   {
+    "id": "b",
+    "indicator": "keltner",
+    "tf": "4h",
+    "settings": {
+     "ema_period": 20,
+     "atr_period": 20,
+     "mult": 2.0
+    },
+    "condition": "price_crosses_below_lower"
+   },
+   {
+    "id": "q",
+    "indicator": "adx",
+    "tf": "1d",
+    "settings": {
+     "period": 14
+    },
+    "condition": "adx_below",
+    "params": {
+     "level": 20
+    }
+   }
+  ],
+  "expression": "b and q"
+ }
+}
