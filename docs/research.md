@@ -14,7 +14,8 @@
 | Candles | 4h and 1d as published by the exchange (not resampled), from 2023-01-01 |
 | Sides | long and short, one position per coin per strategy |
 | Selection (IS) | 2023-01-01 … 2025-06-30: rules were searched here |
-| Verification (OOS) | 2025-07-01 … 2026-06-30: rules frozen |
+| Verification (OOS) | 2025-07-01 … 2026-06-30: rules frozen. Not a blind test: results on this period also took part in choosing the four strategies |
+| Earlier period | 2020-07-01 … 2022-12-31: not seen by the choice; run once in November 2026 by an independent re-implementation, two strategies of four |
 | Third period | 2026-07-01 … 2026-11-17: one run at the very end of the research |
 
 SUI trades since 2023-05-03 and ARB since 2023-03-23, so their history is shorter.
@@ -85,10 +86,49 @@ daily curve with open positions marked to market, in % of capital at 1 % risk pe
 Rows marked "recorded" are taken from the research report and are not recomputed by this code here.
 
 All seven half-years 2023H1–2026H1 are positive for every strategy, but unevenly: from +1.2 R to +83.8 R per
-half-year (`../results/by_half_year.csv`). 15–18 of 20 coins are positive in each period.
+half-year (`../results/by_half_year.csv`). 15–18 of 20 coins are positive in each period. This does not hold
+before 2023: see the earlier period below.
 
 An equal mix of the four: Sharpe 1.42 on selection and 1.78 on verification. At 0.25 % risk per trade per strategy
 the mix has 52–66 % annual volatility and drawdowns of 28 % and 46 % of capital. That is a lot.
+
+### Earlier period 2020-07 … 2022-12 (recorded, `../results/recorded/pre_2023.csv`)
+
+The four strategies were chosen on 2023-01 … 2026-06. In November 2026 an independent re-implementation (its own
+indicator and exit code, 4h and 1d bars built from 1h candles, the same fee, slippage and funding) ran
+`st4h_ema50_1d`, `kc2_4h_adx1d` and their controls on 2020-07-01 … 2022-12-31. `zmid1d_cloud4h` and `bbw1d_lr4h`
+were not re-tested. Coins listed later than 2020 take part from their listing date.
+
+| What | Trades | PF | Mean R | Σ R | Long PF | Short PF |
+|---|---|---|---|---|---|---|
+| `st4h_ema50_1d` | 665 | 1.41 | +0.261 | +173.4 | 1.20 | 1.60 |
+| C2: the same without the EMA50 regime | 942 | 0.91 | −0.062 | −58.8 | 0.86 | 0.95 |
+| C4: the same against the regime | 689 | 0.87 | −0.088 | −60.9 | 0.93 | 0.82 |
+| `kc2_4h_adx1d` | 504 | 0.99 | −0.009 | −4.5 | 1.30 | 0.58 |
+| C1: the same without the ADX filter | 1 168 | 1.21 | +0.136 | +159.3 | 1.35 | 1.03 |
+| C3: the same with the filter inverted (ADX ≥ 20) | 919 | 1.28 | +0.182 | +167.1 | 1.39 | 1.15 |
+
+Σ R by calendar year, the same re-implementation (2026 is the first half only):
+
+| Spec | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 H1 |
+|---|---|---|---|---|---|---|---|
+| `st4h_ema50_1d` | +16.8 | +146.0 | +19.8 | +20.0 | +71.7 | +155.4 | +59.7 |
+| `kc2_4h_adx1d` | +7.5 | +12.2 | −21.9 | +97.5 | +100.9 | +92.7 | +45.3 |
+
+What this shows:
+
+- `kc2_4h_adx1d` did not hold up: PF 0.99, a losing 2022, shorts at PF 0.58. Its ADX filter, which helped on
+  2023–2026, hurt here: the entry without the filter and with the filter inverted both did better.
+- `st4h_ema50_1d` held up (PF 1.41), with 2021 giving most of the result. Here its daily filter mattered: without
+  it and against it the entry lost.
+- At the research position size (0.056 % of capital at risk per trade per strategy) the yearly results above are
+  from −1.2 % to +8.7 % of capital per strategy.
+- Random entries with the same exits, 30 runs: on 2020-07 … 2022-12 random shorts PF 0.96 and random longs 1.08;
+  on the verification year random shorts PF 1.36 (mean +0.234 R) and random longs 0.80. In the verification year a
+  short with these exits made money without any signal.
+
+On 2023–2026 the re-implementation is close to this code but not identical: PF 1.32 / 1.56 for `st4h_ema50_1d` and
+1.54 / 1.79 for `kc2_4h_adx1d` on selection / verification, against 1.33 / 1.59 and 1.53 / 1.74 here.
 
 ### Parameter stability (recorded)
 
@@ -106,7 +146,8 @@ strategies on both periods. The weakest point is the Supertrend multiplier 2.4 i
 
 The mechanics "breakout or flip on 4h + wide trail" are profitable without filters on all three periods. The
 filters lift PF from 1.2–1.3 to 1.3–1.7 on selection and verification, but the third period did not confirm their
-contribution: the controls passed there too, even with an inverted filter.
+contribution: the controls passed there too, even with an inverted filter. On 2020–2022 the picture is mixed: the
+Keltner entry without a filter was profitable (PF 1.21) and the Supertrend entry without a filter lost (PF 0.91).
 
 ## Reproducibility
 
@@ -116,6 +157,7 @@ contribution: the controls passed there too, even with an inverted filter.
 | Match with the research engine | trade for trade: 4 strategies × 2 periods, 4 742 trades, every entry and exit time and side identical, R of each trade equal to 1e-13, Σ R and PF identical |
 | Downloaded data | `fetch` output is byte-identical to the research data set for all 20 coins (4h, 1d, funding) |
 | Third period, parameter stability, controls, other perpetuals, limit entries | **taken from the research report**, not recomputed here (`../results/recorded/`) |
+| Earlier period 2020-07 … 2022-12, random entries | **taken from the November 2026 re-test**, not recomputed here: `fetch` downloads history from 2023-01-01 (`../results/recorded/pre_2023.csv`) |
 
 `tests/expected.json` holds the IS/OOS totals; `pytest` compares `report` against them when `data/` exists.
 Exchanges occasionally revise history, so tiny differences are possible if you download much later.
@@ -132,7 +174,9 @@ Exchanges occasionally revise history, so tiny differences are possible if you d
    The result on 20 coins is largely a property of this set of large coins, not general market mechanics.
 3. **Shorts are stronger than longs on the twenty coins too.** On the verification year short PF is 1.74–2.65
    against 1.17–1.34 for longs; `st4h_ema50_1d` longs are about zero on selection (PF 0.99). The 2025–2026 market
-   was falling. Table: `../results/by_side.csv`.
+   was falling, and random shorts with the same exits made PF 1.36 in that year. On 2020–2022 the sides differ by
+   strategy: `st4h_ema50_1d` shorts PF 1.60 and longs 1.20, `kc2_4h_adx1d` shorts 0.58 and longs 1.30.
+   Table: `../results/by_side.csv`.
 4. **A limit entry makes it worse.** 64 variants of a limit entry instead of a market one were tested: none passed,
    all are below the market entry on the verification year. The reason is adverse selection: trades where the limit
    would fill average 0.32 R, the missed ones 0.72 R. The ceiling of the saving is about 0.011 R per trade. Treating
@@ -140,10 +184,15 @@ Exchanges occasionally revise history, so tiny differences are possible if you d
 5. **The third period is used up.** 31 candidates were checked on it and 16 passed the threshold (PF ≥ 1.2). A
    4.5-month period with one market regime suited breakout systems and does not tell filters from no filters. It
    cannot be used as evidence again; from here only a forward test counts.
-6. **Multiple testing.** The four strategies were chosen from about 3 000 tested variants. Part of the result is
-   hindsight selection; the control without filters (PF 1.2–1.3) is closer to an honest estimate than PF 1.5–1.7.
+6. **Multiple testing, and no blind year.** The four strategies were chosen from about 3 000 tested variants, and
+   results on the verification year took part in the choice, so PF 1.5–1.7 on it is not an out-of-sample number.
+   Part of the result is hindsight selection. The control without filters gave PF 1.2–1.3 on 2023–2026 and
+   0.91–1.21 on 2020–2022.
 7. **Position size.** Drawdowns in the tables are at 1 % risk per trade with up to 20 correlated positions per
    strategy. That is far too much for trading; the research portfolio used about 0.06 % of capital per trade per
    strategy. About 1,350 trades a year across the four strategies cannot be run by hand.
 8. **The execution model is simplified.** Fixed slippage, unknown high/low order inside a bar (stop wins), no
    intraday drawdown.
+9. **Earlier history is weaker.** On 2020-07 … 2022-12, which the choice did not see, `st4h_ema50_1d` held
+   (PF 1.41) and `kc2_4h_adx1d` did not (PF 0.99, a losing 2022). `zmid1d_cloud4h` and `bbw1d_lr4h` were not
+   re-tested on it. The re-test covers one earlier market cycle and was run once.

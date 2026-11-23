@@ -32,8 +32,9 @@ a web panel and 11 exchanges. Free.
 
 ## What it is and who it is for
 
-- 📈 **Four strategies with an open backtest.** Trend following on 4h candles for 20 large coins, tested on
-  3.5 years of history with fees, slippage and funding. Two commands recompute the results table below on your computer.
+- 📈 **Four strategies with an open backtest.** Trend following on 4h candles for 20 large coins, chosen and
+  checked on 3.5 years of history (2023–2026) with fees, slippage and funding. A later re-test on 2020–2022 came out
+  weaker; both are shown below. Two commands recompute the 2023–2026 table on your computer.
 - 🖥️ **A web panel instead of a config file.** Start and stop, positions, trades, settings and exchange keys in the
   browser, on a phone too, in English and Russian.
 - 🛡️ **Built to limit damage.** Every position gets a stop-loss on the exchange, an order is never sent twice, and
@@ -107,9 +108,14 @@ free-crypto-trading-bot report         # all four strategies on both periods
 
 ## Backtest results
 
-20 large Binance USDT-M perpetuals, 4h and 1d candles. Rules were searched on 2023-01-01 … 2025-06-30 (selection)
-and frozen for 2025-07-01 … 2026-06-30 (verification). PF is gross profit over gross loss; Σ R is the total result
-in units of risk per trade; drawdown is in % of capital at 1 % risk per trade.
+20 large Binance USDT-M perpetuals, 4h and 1d candles. PF is gross profit over gross loss; Σ R is the total result
+in units of risk per trade; drawdown is in % of capital at 1 % risk per trade. The results come in two parts: the
+periods the rules were chosen on, and an earlier period the choice never saw.
+
+### Periods the rules were chosen on (2023-01 … 2026-06)
+
+Rules were searched on 2023-01-01 … 2025-06-30 (selection). 2025-07-01 … 2026-06-30 is called verification, but it
+is not a blind test: results on it also took part in choosing these four strategies from about 3 000 variants.
 
 | Strategy | Period | Trades | PF | Σ R | Drawdown, % |
 |---|---|---|---|---|---|
@@ -123,7 +129,29 @@ in units of risk per trade; drawdown is in % of capital at 1 % risk per trade.
 | | verification | 466 | 1.53 | +111.4 | 69 |
 
 <p align="center"><img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/equity-en.png" width="900" alt="Backtest: cumulative result of the four strategies in R"></p>
-<p align="center"><sub>A backtest, not a guarantee. The drawdowns are large: see the limitations below.</sub></p>
+<p align="center"><sub>A backtest of 2023–2026 only, not a guarantee. The drawdowns are large: see the limitations below.</sub></p>
+
+### Earlier period the choice did not see (2020-07 … 2022-12)
+
+In November 2026 an independent re-implementation ran two of the four strategies on 2020-07-01 … 2022-12-31 with
+the same costs. These rows are recorded, not recomputed by this code (`fetch` starts at 2023-01-01).
+
+| Strategy | Trades | PF | Σ R | 2020 | 2021 | 2022 |
+|---|---|---|---|---|---|---|
+| Supertrend + daily EMA50 (`st4h_ema50_1d`) | 665 | 1.41 | +173.4 | +16.8 | +146.0 | +19.8 |
+| Keltner breakout + daily ADX (`kc2_4h_adx1d`) | 504 | 0.99 | −4.5 | +7.5 | +12.2 | −21.9 |
+| `zmid1d_cloud4h`, `bbw1d_lr4h` | not re-tested | | | | | |
+
+The year columns are Σ R per calendar year (2020 is the whole year available in the data, so the years do not add
+up to the period total).
+
+- `kc2_4h_adx1d` was about break-even over the period and lost in 2022. Its ADX filter made it worse there:
+  without the filter PF was 1.21.
+- `st4h_ema50_1d` stayed positive, but most of the result came from 2021 alone. Without its daily filter it lost
+  (PF 0.91).
+- At the position size used in the research (0.056 % of capital at risk per trade), the yearly result of these two
+  strategies over 2020 … 2026 H1 was between −1.2 % and +8.7 % of capital per strategy. That is what happened in the
+  past on these 20 coins; it is not an expected return.
 
 Test conditions, costs, execution rules, the third period, parameter stability, controls without filters and
 reproducibility are in [docs/research.md](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/research.md). The raw tables are in [results/](https://github.com/byttrade/free-crypto-trading-bot/tree/main/results).
@@ -160,13 +188,17 @@ is what the license allows ("you may add, you may not modify"). See [docs/agent-
 
 - **One idea, not four.** The strategies correlate (0.47–0.80), so drawdowns come together.
 - **It does not work outside the twenty coins.** On 639 other perpetuals the result was close to zero.
-- **Shorts were stronger than longs.** The market of the verification year was falling.
-- **Multiple testing.** The four strategies were chosen from about 3 000 variants; part of the result is
-  hindsight. The control without filters (PF 1.2–1.3) is closer to an honest estimate.
+- **Shorts were stronger than longs.** The market of the verification year was falling: random short entries with
+  the same exits made money in that year too (PF 1.36). In 2020–2022 the shorts of `kc2_4h_adx1d` lost (PF 0.58).
+- **Multiple testing, and no blind year.** The four strategies were chosen from about 3 000 variants, and the
+  verification year took part in the choice; part of the result is hindsight. The control without filters gave
+  PF 1.2–1.3 on 2023–2026 and 0.91–1.21 on 2020–2022.
+- **Earlier history is weaker.** On 2020–2022 one of the two re-tested strategies was about break-even and had a
+  losing year; two strategies were not re-tested at all.
 - **Live differs from the backtest.** One position per coin, simplified execution model, no modelling of
   liquidation or exchange outages.
 
-All eight points with numbers: [docs/research.md](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/research.md#honest-limitations).
+All nine points with numbers: [docs/research.md](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/research.md#honest-limitations).
 
 ## Documentation
 

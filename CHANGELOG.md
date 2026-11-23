@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Research: results of a re-test on 2020-07 … 2022-12, a period the choice of strategies did not see
+  (`results/recorded/pre_2023.csv`). `st4h_ema50_1d` held (PF 1.41), `kc2_4h_adx1d` did not (PF 0.99).
+- Research: the verification year is described as it was used: its results took part in choosing the strategies.
+
 ## 1.0.2
 
 - Documentation wording.

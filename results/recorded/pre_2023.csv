@@ -1,0 +1,9 @@
+name,description,trades,pf,mean_R,sum_R,long_pf,short_pf
+st4h_ema50_1d,as published,665,1.41,0.261,173.4,1.20,1.60
+C2,st4h_ema50_1d without the 1d EMA50 regime,942,0.91,-0.062,-58.8,0.86,0.95
+C4,st4h_ema50_1d against the 1d regime,689,0.87,-0.088,-60.9,0.93,0.82
+kc2_4h_adx1d,as published,504,0.99,-0.009,-4.5,1.30,0.58
+C1,kc2_4h_adx1d without the 1d ADX filter,1168,1.21,0.136,159.3,1.35,1.03
+C3,kc2_4h_adx1d with the filter inverted (1d ADX >= 20),919,1.28,0.182,167.1,1.39,1.15
+random_short,random short entries with the 2 / 10 / 5 ATR exits (30 runs),15285,0.96,-0.027,-407.3,,0.96
+random_long,random long entries with the 2 / 10 / 5 ATR exits (30 runs),17108,1.08,0.055,934.8,1.08,
