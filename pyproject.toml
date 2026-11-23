@@ -12,7 +12,8 @@ license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
 authors = [{ name = "BYTtrade" }]
 keywords = ["crypto", "trading bot", "cryptocurrency", "futures", "perpetuals", "trend following", "backtest",
-            "algorithmic trading", "binance", "bybit", "okx", "mcp"]
+            "algorithmic trading", "binance", "bybit", "okx", "mcp", "ai-agents", "model-context-protocol",
+            "mcp-server", "free"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Financial and Insurance Industry",
