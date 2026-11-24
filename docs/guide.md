@@ -277,7 +277,7 @@ python -m trend4h panel --port 8791        # another port
 python -m trend4h panel-user               # set a login and password
 ```
 
-English and Russian, light and dark theme. The panel always opens in English; Russian is switched on with the RU
+English and Russian, dark theme by default and a light one. The panel always opens in English; Russian is switched on with the RU
 button, and the choice is remembered in the browser.
 
 ### Overview

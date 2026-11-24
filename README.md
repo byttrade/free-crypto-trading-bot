@@ -1,26 +1,54 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/banner.svg" alt="Free Crypto Trading Bot by BYTtrade — 4h trend-following strategies for crypto futures" width="100%">
+</p>
+
 <h1 align="center">Free Crypto Trading Bot by BYTtrade</h1>
 
 <p align="center">
-Four backtested 4h trend-following strategies for crypto futures, an open backtest you can re-run yourself,<br>
-a web panel and 11 exchanges. Free.
+<b>Four backtested 4h trend-following strategies for crypto futures, an open backtest you can re-run yourself,<br>
+a web panel and 11 exchanges. Free.</b>
 </p>
 
 <p align="center">
-<img alt="price: free" src="https://img.shields.io/badge/price-free-1B7446">
-<a href="https://pypi.org/project/free-crypto-trading-bot/"><img alt="PyPI" src="https://img.shields.io/pypi/v/free-crypto-trading-bot?color=0E5A63"></a>
-<a href="https://github.com/byttrade/free-crypto-trading-bot/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/byttrade/free-crypto-trading-bot/actions/workflows/tests.yml/badge.svg"></a>
-<img alt="python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-0E5A63">
-<img alt="exchanges: 11" src="https://img.shields.io/badge/exchanges-11-0E5A63">
-<img alt="license: source-available" src="https://img.shields.io/badge/license-source--available-56645F">
-<img alt="status: research" src="https://img.shields.io/badge/status-research-7D5200">
+  <img alt="price: free" src="https://img.shields.io/badge/price-free-b0f542?style=flat-square">
+  <a href="https://pypi.org/project/free-crypto-trading-bot/"><img alt="PyPI" src="https://img.shields.io/pypi/v/free-crypto-trading-bot?style=flat-square&color=b0f542"></a>
+  <a href="https://github.com/byttrade/free-crypto-trading-bot/actions/workflows/tests.yml"><img alt="tests" src="https://img.shields.io/github/actions/workflow/status/byttrade/free-crypto-trading-bot/tests.yml?branch=main&style=flat-square&label=tests"></a>
+  <img alt="exchanges: 11" src="https://img.shields.io/badge/exchanges-11-b0f542?style=flat-square">
+  <img alt="strategies" src="https://img.shields.io/badge/strategies-4%20×%204h%20trend-17c964?style=flat-square">
+  <img alt="python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python&logoColor=white">
+  <img alt="docker" src="https://img.shields.io/badge/run-docker%20compose-2496ed?style=flat-square&logo=docker&logoColor=white">
+  <img alt="MCP" src="https://img.shields.io/badge/AI%20agents-MCP%20%2B%20HTTP-1e90ff?style=flat-square">
+  <img alt="license: source-available" src="https://img.shields.io/badge/license-source--available-555?style=flat-square">
+  <img alt="status: research" src="https://img.shields.io/badge/status-research-f5a524?style=flat-square">
 </p>
 
 <p align="center">
-<a href="https://github.com/byttrade/free-crypto-trading-bot/blob/main/README.ru.md">Русская версия</a> ·
-<a href="https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/guide.md">Guide</a> ·
-<a href="https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/research.md">Research</a> ·
-<a href="https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/agent-api.md">Agent API</a>
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/binance.svg" height="26" alt="Binance">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/bybit.svg" height="26" alt="Bybit">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/okx.svg" height="26" alt="OKX">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/bitget.svg" height="26" alt="Bitget">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/kucoin.svg" height="26" alt="KuCoin">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/gate.svg" height="26" alt="Gate">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/mexc.svg" height="26" alt="MEXC">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/htx.svg" height="26" alt="HTX">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/bingx.svg" height="26" alt="BingX">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/hyperliquid.svg" height="26" alt="Hyperliquid">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/blofin.svg" height="26" alt="BloFin">
 </p>
+
+<p align="center">
+  <a href="#-install-and-start">Quick start</a> ·
+  <a href="#-the-panel">Panel</a> ·
+  <a href="#-backtest-results">Backtest</a> ·
+  <a href="#-how-it-works">How it works</a> ·
+  <a href="#-your-own-ai-agent">AI agents</a> ·
+  <a href="#-honest-limitations">Limitations</a> ·
+  <a href="https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/guide.md">Guide</a> ·
+  <a href="https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/research.md">Research</a> ·
+  <a href="https://github.com/byttrade/free-crypto-trading-bot/blob/main/README.ru.md">Русский</a>
+</p>
+
+---
 
 > **Risk warning and disclaimer.** This is high-risk trading: perpetual futures can lose your entire deposit.
 > BYTtrade is not responsible for the results you get or for any losses. Backtest and paper-trading results do not
@@ -30,7 +58,7 @@ a web panel and 11 exchanges. Free.
 <p align="center"><img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/start-en.gif" width="900" alt="Start on a demo account from the web panel"></p>
 <p align="center"><sub>The panel with demo data: every balance, position and trade in the pictures on this page is invented.</sub></p>
 
-## What it is and who it is for
+## 🚀 What it is and who it is for
 
 - 📈 **Four strategies with an open backtest.** Trend following on 4h candles for 20 large coins, chosen and
   checked on 3.5 years of history (2023–2026) with fees, slippage and funding. A later re-test on 2020–2022 came out
@@ -44,9 +72,9 @@ a web panel and 11 exchanges. Free.
 - 💸 **Free.** No subscription and no paid tier.
 
 It is for people who want to try systematic trading on a demo account and check a backtest themselves. It is not
-for anyone who expects a guaranteed income: read [the limitations](#honest-limitations) first.
+for anyone who expects a guaranteed income: read [the limitations](#-honest-limitations) first.
 
-## Install and start
+## ⚡ Install and start
 
 **pip** (Python 3.10+), or **uvx** without installing anything:
 
@@ -88,7 +116,7 @@ free-crypto-trading-bot fetch          # public Binance data, about 3 minutes, 1
 free-crypto-trading-bot report         # all four strategies on both periods
 ```
 
-## The panel
+## 📊 The panel
 
 | Overview | Strategy |
 |---|---|
@@ -106,7 +134,7 @@ free-crypto-trading-bot report         # all four strategies on both periods
 
 <sub>Demo data in every picture.</sub>
 
-## Backtest results
+## 📈 Backtest results
 
 20 large Binance USDT-M perpetuals, 4h and 1d candles. PF is gross profit over gross loss; Σ R is the total result
 in units of risk per trade; drawdown is in % of capital at 1 % risk per trade. The results come in two parts: the
@@ -156,7 +184,7 @@ up to the period total).
 Test conditions, costs, execution rules, the third period, parameter stability, controls without filters and
 reproducibility are in [docs/research.md](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/research.md). The raw tables are in [results/](https://github.com/byttrade/free-crypto-trading-bot/tree/main/results).
 
-## How it works
+## 🧩 How it works
 
 <p align="center"><img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/how-it-works-en.png" width="900" alt="Market data, signals, executor, your exchange"></p>
 
@@ -170,13 +198,13 @@ reproducibility are in [docs/research.md](https://github.com/byttrade/free-crypt
 
 Details: [what the executor does step by step](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/guide.md#what-the-executor-does-step-by-step).
 
-## Exchanges
+## 🔌 Exchanges
 
 Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX and BloFin, through the
 [bytx](https://github.com/byttrade/bytx) SDK. Demo accounts work on Binance, Bybit, OKX, BingX, Hyperliquid, Bitget,
 Gate and BloFin; KuCoin, MEXC and HTX have no demo environment. See [exchange keys](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/guide.md#exchange-keys).
 
-## Your own AI agent
+## 🤖 Your own AI agent
 
 Create a token in the panel and give it to your agent: over the HTTP API or the built-in MCP server. Agents and assistants start with [AGENTS.md](https://github.com/byttrade/free-crypto-trading-bot/blob/main/AGENTS.md); there is also a [skill file](https://github.com/byttrade/free-crypto-trading-bot/blob/main/skills/free-crypto-trading-bot/SKILL.md), [llms.txt](https://github.com/byttrade/free-crypto-trading-bot/blob/main/llms.txt) and an MCP registry entry ([server.json](https://github.com/byttrade/free-crypto-trading-bot/blob/main/server.json)). A token can
 read the state and, if you allow it, control the executor on the demo account. It never reaches exchange keys and
@@ -184,7 +212,7 @@ cannot start a real account. An agent works through these public interfaces and 
 is what the license allows ("you may add, you may not modify"). See [docs/agent-api.md](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/agent-api.md) and
 [the guide](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/guide.md#agents).
 
-## Honest limitations
+## 🔍 Honest limitations
 
 - **One idea, not four.** The strategies correlate (0.47–0.80), so drawdowns come together.
 - **It does not work outside the twenty coins.** On 639 other perpetuals the result was close to zero.
@@ -200,7 +228,7 @@ is what the license allows ("you may add, you may not modify"). See [docs/agent-
 
 All nine points with numbers: [docs/research.md](https://github.com/byttrade/free-crypto-trading-bot/blob/main/docs/research.md#honest-limitations).
 
-## Documentation
+## 📚 Documentation
 
 | Document | What is inside |
 |---|---|
@@ -211,7 +239,7 @@ All nine points with numbers: [docs/research.md](https://github.com/byttrade/fre
 | [CHANGELOG.md](https://github.com/byttrade/free-crypto-trading-bot/blob/main/CHANGELOG.md) | what changed in each release |
 | [results/](https://github.com/byttrade/free-crypto-trading-bot/tree/main/results) | metrics recomputed by this code and recorded research tables |
 
-## License
+## 📜 License
 
 [BYTtrade Source-Available License 1.3 (trend-4h edition)](https://github.com/byttrade/free-crypto-trading-bot/blob/main/LICENSE), the same terms as bytx. In plain words:
 
@@ -223,7 +251,7 @@ All nine points with numbers: [docs/research.md](https://github.com/byttrade/fre
 
 The LICENSE text is what counts; this summary does not replace it. Dependencies and their licenses: [NOTICE](https://github.com/byttrade/free-crypto-trading-bot/blob/main/NOTICE).
 
-## BYTtrade
+## 💚 BYTtrade
 
 This bot is free and made by BYTtrade. On [byttrade.com](https://byttrade.com/?utm_source=github&utm_medium=free_tool&utm_campaign=free-crypto-trading-bot&utm_content=readme_en)
 there are more strategies, grid bots, more indicators and a deeper history for backtests, with nothing to code by

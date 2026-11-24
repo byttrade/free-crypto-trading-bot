@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+- Panel: the BYTtrade look shared with ArbDesk: dark theme by default, lime accent, the BYTtrade mark. The light
+  theme stays in Settings.
+- README: new banner, exchange logos and screenshots of the new look.
+
 ## 1.0.3
 
 - Package metadata: more keywords for package search.

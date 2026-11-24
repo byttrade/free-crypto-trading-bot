@@ -11,9 +11,7 @@ license = "LicenseRef-BYTtrade-Source-Available-1.3"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
 authors = [{ name = "BYTtrade" }]
-keywords = ["crypto", "trading bot", "cryptocurrency", "futures", "perpetuals", "trend following", "backtest",
-            "algorithmic trading", "binance", "bybit", "okx", "mcp", "ai-agents", "model-context-protocol",
-            "mcp-server", "free"]
+keywords = ["crypto", "crypto trading bot", "crypto bot", "trading bot", "trading-bot", "cryptocurrency", "futures", "futures trading", "perpetuals", "perpetual futures", "trend following", "trading strategies", "supertrend", "ichimoku", "keltner channel", "backtest", "backtesting", "algorithmic trading", "quant", "demo trading", "self-hosted", "binance", "bybit", "okx", "bitget", "kucoin", "hyperliquid", "bingx", "gate", "mexc", "htx", "blofin", "mcp", "mcp-server", "model-context-protocol", "ai-agents", "free"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Financial and Insurance Industry",

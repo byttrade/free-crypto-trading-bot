@@ -722,14 +722,14 @@ def main(a):
 PAGE = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Free Crypto Trading Bot by BYTtrade</title>
 <script>(function(){var p=null;try{p=localStorage.getItem("t4h.theme")}catch(e){}
-document.documentElement.dataset.theme=p==="light"||p==="dark"?p:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")})()</script>
+document.documentElement.dataset.theme=p==="light"?"light":p==="system"&&!matchMedia("(prefers-color-scheme: dark)").matches?"light":"dark"})()</script>
 <style>
-:root{--bg:#EDF1F0;--panel:#FBFCFC;--sunk:#E3E9E7;--ink:#14201E;--mute:#56645F;--line:#D2DBD8;--accent:#0E5A63;--accent-ink:#FFFFFF;
---soft:#DDEBEB;--up:#1B7446;--down:#AE372F;--warn:#7D5200;--warn-bg:#F5EBD2;--danger:#A62C24;--danger-bg:#F6E2DF;--shade:rgba(20,32,30,.45);
---sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
---mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;color-scheme:light}
-:root[data-theme=dark]{--bg:#10181B;--panel:#172226;--sunk:#0C1316;--ink:#E2EAE8;--mute:#8FA09C;--line:#2A393D;--accent:#6FC3C9;--accent-ink:#06262A;
---soft:#1D3237;--up:#6FCB98;--down:#EE9186;--warn:#E3B55E;--warn-bg:#30270F;--danger:#EE9186;--danger-bg:#381C19;--shade:rgba(0,0,0,.6);color-scheme:dark}
+:root{--bg:#F3F5F1;--panel:#FFFFFF;--sunk:#E8ECE3;--ink:#0B0F14;--mute:#5B6573;--line:#DCE1D6;--accent:#4D7C0F;--accent-ink:#FFFFFF;--brand:#4D7C0F;
+--soft:#EEF5DC;--up:#0E8A43;--down:#C8104C;--warn:#8A5A00;--warn-bg:#FBF0D9;--danger:#C8104C;--danger-bg:#FCE4EC;--shade:rgba(11,15,20,.45);
+--sans:Manrope,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+--mono:"IBM Plex Mono",ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;color-scheme:light}
+:root[data-theme=dark]{--bg:#07090C;--panel:#10141A;--sunk:#0B0F14;--ink:#E8EEF4;--mute:#8B96A5;--line:#242C36;--accent:#C8F542;--accent-ink:#111111;--brand:#C8F542;
+--soft:rgba(200,245,66,.1);--up:#17C964;--down:#F31260;--warn:#F5A524;--warn-bg:#241C0C;--danger:#F31260;--danger-bg:#2A0E17;--shade:rgba(0,0,0,.65);color-scheme:dark}
 *{box-sizing:border-box}[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);overflow-wrap:break-word}
@@ -745,8 +745,8 @@ a,.link{color:var(--accent);background:none;border:0;padding:0;cursor:pointer;te
 .app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
 .side{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:22px;padding:22px 14px 16px;background:var(--panel);border-right:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;padding:0 10px;font-weight:700;font-size:17px;letter-spacing:-.01em}
-.brand svg{width:24px;height:24px;color:var(--accent)}
-.bname{display:flex;flex-direction:column;line-height:1.2;font-size:15px}.bname i{font-style:normal}.side .bname i{display:block}
+.brand svg{width:34px;height:22px;color:var(--ink);stroke:none}
+.bname{display:flex;flex-direction:column;line-height:1.2;font-size:15px;font-weight:800}.bname i{font-style:normal;color:var(--brand)}.side .bname i{display:block}
 .bname small{font-weight:500;font-size:12px;color:var(--mute);letter-spacing:0;margin-top:2px}
 .nav{display:flex;flex-direction:column;gap:2px}
 .nav button{display:flex;align-items:center;gap:11px;padding:9px 10px;border:0;border-radius:8px;background:none;cursor:pointer;color:var(--mute);font-weight:550;text-align:left}
@@ -773,7 +773,7 @@ main{padding:30px 36px 72px;max-width:1120px;width:100%}
 .panel>.body{padding:16px 20px 20px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:7px 13px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;font-weight:550;white-space:nowrap;line-height:1.3}
 .btn:hover{border-color:var(--mute)}.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
 .btn.primary:hover{filter:brightness(1.08)}
 .btn.danger{background:var(--danger);border-color:var(--danger);color:var(--panel)}
 .btn.stop{border-color:var(--danger);color:var(--danger)}
@@ -922,7 +922,7 @@ td::before{content:attr(data-l);display:block;font-size:12px;color:var(--mute);f
 @media(prefers-reduced-motion:no-preference){.day i>b>s{transition:width .6s linear}}
 </style></head><body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-<symbol id="i-mark" viewBox="0 0 24 24"><path d="M4 20V13M9.3 20V9M14.6 20V11.5M20 20V4" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/></symbol>
+<symbol id="i-mark" viewBox="0 0 49 30"><g fill="currentColor"><rect y="18" width="33.4" height="11.4" rx="3"/><rect x="8.2" y="9" width="33.4" height="11.4" rx="3"/><rect x="15.6" width="33.4" height="11.4" rx="3"/></g><g fill="var(--bg)"><rect x="8.2" y="16.3" width="25.9" height="4.1" rx="1"/><rect x="15.6" y="7.3" width="25.9" height="4.1" rx="1"/></g></symbol>
 <symbol id="i-overview" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0M12 7v5l3 2"/></symbol>
 <symbol id="i-strategy" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h3M11 12h9M4 18h9M17 18h3"/><circle cx="16" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="18" r="2"/></symbol>
 <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l2.5 2.5M14 9l2 2"/></symbol>
@@ -1223,7 +1223,7 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const store={get(k){try{return localStorage.getItem("t4h."+k)}catch(e){return null}},set(k,v){try{localStorage.setItem("t4h."+k,v)}catch(e){}}};
 let S=null,csrf="",form=null,page="overview",skew=0,jfilter="all",jevents=[],keysFor=null,askResolve=null,tokControl=false;
 let lang=store.get("lang")==="ru"?"ru":"en";  /* English unless the person chose Russian with the button */
-let themePref=store.get("theme")||"system";
+let themePref=store.get("theme")||"dark";
 
 function t(k,...a){let s=(T[lang]&&T[lang][k])||T.en[k]||k;a.forEach((v,i)=>{s=s.split("{"+i+"}").join(v)});return s}
 function h(tag,attrs,...kids){const e=document.createElement(tag);for(const k in attrs||{}){const v=attrs[k];if(v==null||v===false)continue;

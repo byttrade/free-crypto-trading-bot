@@ -1,26 +1,54 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/banner.svg" alt="Free Crypto Trading Bot by BYTtrade — стратегии трендследования 4h для крипто-фьючерсов" width="100%">
+</p>
+
 <h1 align="center">Бесплатный торговый бот для крипты от BYTtrade</h1>
 
 <p align="center">
-Четыре проверенные на истории стратегии трендследования 4h для крипто-фьючерсов, открытый бэктест, который можно<br>
-пересчитать самому, веб-панель и 11 бирж. Бесплатно.
+<b>Четыре проверенные на истории стратегии трендследования 4h для крипто-фьючерсов, открытый бэктест, который можно<br>
+пересчитать самому, веб-панель и 11 бирж. Бесплатно.</b>
 </p>
 
 <p align="center">
-<img alt="цена: бесплатно" src="https://img.shields.io/badge/price-free-1B7446">
-<a href="https://pypi.org/project/free-crypto-trading-bot/"><img alt="PyPI" src="https://img.shields.io/pypi/v/free-crypto-trading-bot?color=0E5A63"></a>
-<a href="https://github.com/byttrade/free-crypto-trading-bot/actions/workflows/tests.yml"><img alt="тесты" src="https://github.com/byttrade/free-crypto-trading-bot/actions/workflows/tests.yml/badge.svg"></a>
-<img alt="python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-0E5A63">
-<img alt="бирж: 11" src="https://img.shields.io/badge/exchanges-11-0E5A63">
-<img alt="лицензия: source-available" src="https://img.shields.io/badge/license-source--available-56645F">
-<img alt="статус: исследование" src="https://img.shields.io/badge/status-research-7D5200">
+  <img alt="цена: бесплатно" src="https://img.shields.io/badge/price-free-b0f542?style=flat-square">
+  <a href="https://pypi.org/project/free-crypto-trading-bot/"><img alt="PyPI" src="https://img.shields.io/pypi/v/free-crypto-trading-bot?style=flat-square&color=b0f542"></a>
+  <a href="https://github.com/byttrade/free-crypto-trading-bot/actions/workflows/tests.yml"><img alt="тесты" src="https://img.shields.io/github/actions/workflow/status/byttrade/free-crypto-trading-bot/tests.yml?branch=main&style=flat-square&label=tests"></a>
+  <img alt="бирж: 11" src="https://img.shields.io/badge/exchanges-11-b0f542?style=flat-square">
+  <img alt="strategies" src="https://img.shields.io/badge/strategies-4%20×%204h%20trend-17c964?style=flat-square">
+  <img alt="python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python&logoColor=white">
+  <img alt="docker" src="https://img.shields.io/badge/run-docker%20compose-2496ed?style=flat-square&logo=docker&logoColor=white">
+  <img alt="MCP" src="https://img.shields.io/badge/AI%20agents-MCP%20%2B%20HTTP-1e90ff?style=flat-square">
+  <img alt="лицензия: source-available" src="https://img.shields.io/badge/license-source--available-555?style=flat-square">
+  <img alt="статус: исследование" src="https://img.shields.io/badge/status-research-f5a524?style=flat-square">
 </p>
 
 <p align="center">
-<a href="README.md">English version</a> ·
-<a href="docs/guide.ru.md">Руководство</a> ·
-<a href="docs/research.ru.md">Исследование</a> ·
-<a href="docs/agent-api.md">API для агентов</a>
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/binance.svg" height="26" alt="Binance">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/bybit.svg" height="26" alt="Bybit">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/okx.svg" height="26" alt="OKX">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/bitget.svg" height="26" alt="Bitget">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/kucoin.svg" height="26" alt="KuCoin">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/gate.svg" height="26" alt="Gate">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/mexc.svg" height="26" alt="MEXC">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/htx.svg" height="26" alt="HTX">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/bingx.svg" height="26" alt="BingX">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/hyperliquid.svg" height="26" alt="Hyperliquid">&nbsp;
+  <img src="https://raw.githubusercontent.com/byttrade/free-crypto-trading-bot/main/docs/img/logos/blofin.svg" height="26" alt="BloFin">
 </p>
+
+<p align="center">
+  <a href="#-установка-и-запуск">Быстрый старт</a> ·
+  <a href="#-панель">Панель</a> ·
+  <a href="#-результаты-бэктеста">Бэктест</a> ·
+  <a href="#-как-это-работает">Как работает</a> ·
+  <a href="#-свой-ии-агент">ИИ-агенты</a> ·
+  <a href="#-честные-ограничения">Ограничения</a> ·
+  <a href="docs/guide.ru.md">Руководство</a> ·
+  <a href="docs/research.ru.md">Исследование</a> ·
+  <a href="README.md">English</a>
+</p>
+
+---
 
 > **Предупреждение о риске и отказ от ответственности.** Это высокорискованная торговля: на бессрочных фьючерсах
 > можно потерять весь депозит. BYTtrade не несёт ответственности за полученные результаты и убытки. Результаты
@@ -30,7 +58,7 @@
 <p align="center"><img src="docs/img/start-ru.gif" width="900" alt="Запуск на демо-счёте из веб-панели"></p>
 <p align="center"><sub>Панель с данными для примера: все балансы, позиции и сделки на картинках этой страницы вымышлены.</sub></p>
 
-## Что это и для кого
+## 🚀 Что это и для кого
 
 - 📈 **Четыре стратегии с открытым бэктестом.** Трендследование на свечах 4h для 20 крупных монет, подобранное и
   проверенное на 3,5 годах истории (2023–2026) с комиссиями, проскальзыванием и фандингом. Более поздняя проверка на
@@ -44,9 +72,9 @@
 - 💸 **Бесплатно.** Без подписки и платных тарифов.
 
 Бот для тех, кто хочет попробовать системную торговлю на демо-счёте и сам проверить бэктест. Он не для тех, кто
-ждёт гарантированного дохода: сначала прочитайте [ограничения](#честные-ограничения).
+ждёт гарантированного дохода: сначала прочитайте [ограничения](#-честные-ограничения).
 
-## Установка и запуск
+## ⚡ Установка и запуск
 
 **pip** (Python 3.10+) или **uvx** — без установки:
 
@@ -89,7 +117,7 @@ free-crypto-trading-bot fetch          # публичные данные Binance
 free-crypto-trading-bot report         # все четыре стратегии на обоих периодах
 ```
 
-## Панель
+## 📊 Панель
 
 | Обзор | Стратегия |
 |---|---|
@@ -107,7 +135,7 @@ free-crypto-trading-bot report         # все четыре стратегии 
 
 <sub>На всех картинках данные для примера.</sub>
 
-## Результаты бэктеста
+## 📈 Результаты бэктеста
 
 20 крупных бессрочных контрактов Binance USDT-M, свечи 4h и 1d. PF — валовая прибыль к валовому убытку; Σ R — итог
 в единицах риска на сделку; просадка — в % капитала при риске 1 % на сделку. Результаты даны двумя частями: периоды,
@@ -157,7 +185,7 @@ free-crypto-trading-bot report         # все четыре стратегии 
 Условия проверки, издержки, правила исполнения, третий период, устойчивость к параметрам, контроль без фильтров и
 воспроизводимость — в [docs/research.ru.md](docs/research.ru.md). Исходные таблицы — в [results/](results/).
 
-## Как это работает
+## 🧩 Как это работает
 
 <p align="center"><img src="docs/img/how-it-works-ru.png" width="900" alt="Данные рынка, сигналы, исполнитель, ваша биржа"></p>
 
@@ -171,13 +199,13 @@ free-crypto-trading-bot report         # все четыре стратегии 
 
 Подробнее: [что делает исполнитель шаг за шагом](docs/guide.ru.md#что-делает-исполнитель-шаг-за-шагом).
 
-## Биржи
+## 🔌 Биржи
 
 Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX и BloFin — через SDK
 [bytx](https://github.com/byttrade/bytx). Демо-счета работают на Binance, Bybit, OKX, BingX, Hyperliquid, Bitget, Gate
 и BloFin; у KuCoin, MEXC и HTX демо-среды нет. См. [ключи бирж](docs/guide.ru.md#ключи-бирж).
 
-## Свой ИИ-агент
+## 🤖 Свой ИИ-агент
 
 Создайте токен в панели и передайте его агенту: через HTTP API или встроенный MCP-сервер. Агентам и ассистентам стоит начать с [AGENTS.md](AGENTS.md); есть также [файл скилла](skills/free-crypto-trading-bot/SKILL.md), [llms.txt](llms.txt) и запись для реестра MCP ([server.json](server.json)). Токен может читать
 состояние и, если вы разрешите, управлять исполнителем на демо-счёте. До ключей бирж он не дотягивается и реальный
@@ -185,7 +213,7 @@ Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX и BloF
 лицензия («добавлять можно, изменять нельзя»). См. [docs/agent-api.md](docs/agent-api.md) и
 [руководство](docs/guide.ru.md#агенты).
 
-## Честные ограничения
+## 🔍 Честные ограничения
 
 - **Это одна идея, а не четыре.** Стратегии коррелируют (0,47–0,80), просадки приходят вместе.
 - **Вне двадцати монет не работает.** На 639 других бессрочных контрактах результат был около нуля.
@@ -201,7 +229,7 @@ Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX и BloF
 
 Все девять пунктов с числами: [docs/research.ru.md](docs/research.ru.md#честные-ограничения).
 
-## Документация
+## 📚 Документация
 
 | Документ | Что внутри |
 |---|---|
@@ -212,7 +240,7 @@ Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX и BloF
 | [CHANGELOG.md](CHANGELOG.md) | что менялось в каждом выпуске (на английском) |
 | [results/](results/) | метрики, пересчитанные этим кодом, и записанные таблицы исследования |
 
-## Лицензия
+## 📜 Лицензия
 
 [BYTtrade Source-Available License 1.3 (редакция для trend-4h)](LICENSE) — те же условия, что у bytx. Простыми словами:
 
@@ -224,7 +252,7 @@ Binance, Bybit, OKX, BingX, KuCoin, Hyperliquid, Bitget, Gate, MEXC, HTX и BloF
 
 Силу имеет текст LICENSE; этот пересказ его не заменяет. Зависимости и их лицензии — в [NOTICE](NOTICE).
 
-## BYTtrade
+## 💚 BYTtrade
 
 Этот бот бесплатен и сделан BYTtrade. На [byttrade.com](https://byttrade.com/?utm_source=github&utm_medium=free_tool&utm_campaign=free-crypto-trading-bot&utm_content=readme_ru)
 больше стратегий, сеточные боты, больше индикаторов и более глубокая история для бэктеста, ничего не нужно писать
